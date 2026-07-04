@@ -13,7 +13,9 @@ module.exports = (gv) => {
   if (val && val.length === 2) {
     config.keynameNum = parseInt(val[1]);
   } else {
-    throw new Error('keyname长度未匹配到!');
+    // 新版瑞数格式兼容：keyname 正则匹配不到时使用默认值
+    logger.warn('keyname长度未匹配到，使用默认值909，如cookie生成失败请从浏览器获取$_ts.cp[1].length');
+    config.keynameNum = 909;
   }
   if (isValidUrl(gv.argv.mate.url)) {
     config.url = new URL(gv.argv.mate.url);

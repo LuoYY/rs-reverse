@@ -43,7 +43,7 @@ module.exports = function (ts, outputResolve) {
   });
   console.log(`\n成功生成cookie（长度：${cookie.length}），用时：${new Date().getTime() - startTime}ms`);
   const cookieStr = [
-    gv.utils.ascii2string(gv.keys[7]).split(';')[5] + 'T=' + cookie,
+    gv.utils.ascii2string(gv.keys[7]).split(';')[5] + (gv.config.adapt?.lastWord || 'T') + '=' + cookie,
     ...(gv.argv.url?.cookie ?? []),
   ].join(';')
   console.log(`cookie值: ${cookieStr}`)
