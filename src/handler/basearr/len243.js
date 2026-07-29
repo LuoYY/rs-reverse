@@ -47,7 +47,7 @@ function getBasearr(hostname, config) {
       ...numToNumarr2(config['window.outerHeight']),
       ...numToNumarr2(config['window.outerWidth']),
       ...numToNumarr8(0),
-      ...numToNumarr4(4),// 检测链接字符是否包含bXQProcmw6S8
+      ...numToNumarr4(0),// 检测链接字符(:20080 真实 basearr 实测为 0)
       ...numToNumarr4(0),
       ...numToNumarr4(uuid(gv.config.url.pathname.toUpperCase())),
       ...numToNumarr4(0),
@@ -75,24 +75,24 @@ function getBasearr(hostname, config) {
     ],
     0,
     // [0] 段: v2 新增的"浏览器指纹加密块"。
-    // 性质: 同一浏览器(指纹)下跨会话固定不变(非会话相关), 大小随浏览器指纹变化
-    // (jsdom=61字节, 真实浏览器=101字节)。由内层 VM 采集浏览器指纹后用站点常量密钥加密生成。
-    // 方案B: 硬编码 temp1 真实浏览器(Chrome 131 Mac)的 101 字节 [0] 块, 配合 makecookieRuntimeConfig
-    // 的 Chrome 131 Mac [3] inner, 测试服务器是否接受。temp1 的 [0] 用站点常量密钥加密, 跨会话可复用。
-    [
+    // 性质: 同一浏览器(指纹)下跨会话固定(站点常量密钥加密), 大小随指纹变化(jsdom=61,真实浏览器=101)。
+    // 默认值为 :20080 真实浏览器 247 字节 basearr 的 [0] 段逐字节提取(见 other_base_arr), 覆盖该站全部尝试。
+    // 仍可通过 config.seg0Override 注入其他浏览器指纹的 [0] 块。
+    (gv.makecookieRuntimeConfig?.seg0Override || [
       47, 119, 54, 154, 195, 77, 48, 41, 123, 55, 111, 49, 253, 235, 248, 167,
       151, 183, 140, 71, 11, 230, 161, 113, 127, 26, 145, 122, 108, 163, 109, 13,
       107, 166, 163, 152, 211, 15, 217, 5, 133, 85, 184, 207, 114, 162, 21, 75,
       16, 65, 58, 91, 178, 2, 173, 195, 245, 45, 25, 149, 136, 73, 25, 83,
       50, 107, 38, 161, 202, 142, 65, 38, 53, 39, 24, 78, 71, 203, 94, 5,
-      215, 0, 47, 4, 204, 64, 197, 121, 162, 245, 251, 216, 20, 120, 113, 45,
-      36, 175, 188, 59, 229,
-    ],
+      215, 32, 55, 87, 232, 118, 203, 110, 6, 197, 241, 238, 21, 86, 99, 95,
+      134, 61, 190, 155, 164,
+    ]),
     6,
     [
       1,
-      ...numToNumarr2(0),
-      ...numToNumarr2(0),
+      // :20080 真实 basearr 实测: 前两组 numToNumarr2 为 2(非标准站点的 0), 见 real-basearr 反解
+      ...numToNumarr2(2),
+      ...numToNumarr2(2),
       config['window.document.hidden'] ? 0 : 1,
       ...encryptMode2(decrypt(ascii2string(gv.keys[22])), numarrAddTime(gv.keys[16])[0]),
       ...numToNumarr2(+decode(decrypt(ascii2string(gv.keys[22])))),

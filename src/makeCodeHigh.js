@@ -61,6 +61,18 @@ function writeFile(step, ts, immucfg, { jscode, html, appcode = [] }, $_ts, code
 }
 
 function firstStep(ts, immucfg, mate, outputResolve) {
+  // parseTs 会用代码校验和覆盖 cp[3]，需先保留服务端真实值，运行后再还原，
+  // 否则动态代码执行时无法正确构建 keylist（_$iI 等变量 undefined）。
+  // 实时抓取（-u）的 ts 不含 cp 数组，这里回退到适配器声明的站点常量。
+  if (ts.cp3Override === undefined) {
+    // 取值优先级：ts.cp3Override > ts.cp[3]（浏览器完整 $_ts）> 适配器站点常量
+    // -u 模式（mate.jscode 存在）使用标准代码校验和，不回退到适配器常量
+    if (ts.cp && ts.cp[3] !== undefined) {
+      ts.cp3Override = ts.cp[3];
+    } else if (!mate.jscode) {
+      ts.cp3Override = gv.config.adapt?.cp3Override;
+    }
+  }
   gv._setAttr('_ts', ts);
   const coder = new Coder({
     hasCodemap: true,
@@ -68,6 +80,9 @@ function firstStep(ts, immucfg, mate, outputResolve) {
     ...ts
   }, immucfg);
   const { code, $_ts, codemap, codePure } = coder.run();
+  if (ts.cp3Override !== undefined) {
+    $_ts.cp[3] = ts.cp3Override;
+  }
   gv.config.codemap = codemap;
   const files = writeFile('first', ts, immucfg, mate, $_ts, code, codePure, outputResolve);
   const cookieVal = new Cookie(coder).run();
@@ -91,7 +106,10 @@ module.exports = async function (ts, outputResolve) {
     fse.moveSync(outputResolve('makecode-high'), outputResolve('makecode-high-old'), { overwrite: true });
   }
   const startTime = new Date().getTime();
-  const [files, cookieStr] = firstStep(ts, gv.config.immucfg, mate, outputResolve);
+  // -u 模式优先使用从目标 URL 抓取的外层 VM js 生成 immucfg，
+  // 否则回退到配置（-j 或默认 main.js）
+  const immucfg = mate.jscode ? getImmucfg(mate.jscode.code) : gv.config.immucfg;
+  const [files, cookieStr] = firstStep(ts, immucfg, mate, outputResolve);
   logger.debug(`生成cookie：${cookieStr}`);
   files.unshift('\n第1次请求保存文件：\n');
   const result = await getCode(mate.url, cookieStr);

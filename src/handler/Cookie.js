@@ -46,7 +46,7 @@ module.exports = class {
       gv.config.adapt?.hasDebug ? basearrEncrypt.length >> 8 & 255 | 128 : undefined,
       basearrEncrypt,
     )
-    return '0' + numarr2string(
+    return (gv.config.adapt?.cookiePrefix || '0') + numarr2string(
       encryptMode1(
         [
           ...numToNumarr4(uuid(nextarr)),
@@ -55,15 +55,20 @@ module.exports = class {
         numarrAddTime(gv.keys[16], this.config.runTime, this.config.random)[0],
         1,
         this.config.random
-      )
+      ),
+      gv.config.adapt?.basestr ? gv.config.adapt.basestr.split('') : undefined
     );
   }
 
   getCodeUid() {
     const mainFunctionCode = this.coder.code.slice(...this.coder.mainFunctionIdx);
-    const one = uuid(this.coder.functionsNameSort[ascii2string(gv.keys[33])].code);
+    const funcIdx = +ascii2string(gv.keys[33]);
+    // nx VM: keys[33] 可能因 task offset 偏移而损坏，回退到索引 20（经浏览器捕获验证）
+    const validIdx = (!isNaN(funcIdx) && funcIdx < this.coder.functionsNameSort.length) ? funcIdx : 20;
+    const funcEntry = this.coder.functionsNameSort[validIdx];
+    const one = funcEntry && funcEntry.code ? uuid(funcEntry.code) : uuid(mainFunctionCode.substring(0, 100));
     const len = parseInt(mainFunctionCode.length / 100);
-    const start = len * ascii2string(gv.keys[34]);
+    const start = len * (+ascii2string(gv.keys[34]) || 0);
     const two = uuid(mainFunctionCode.substr(start, len))
     return (one ^ two) & 65535;
   }

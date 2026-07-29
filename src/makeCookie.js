@@ -36,6 +36,16 @@ module.exports = function (ts, outputResolve) {
     ...ts,
   }, gv.config.immucfg);
   const { code, $_ts, codemap } = coder.run();
+  // 支持从 ts JSON 中覆盖 cp[3]（浏览器真实值），确保 keys 一致；
+  // 取值优先级：ts.cp3Override > ts.cp[3]（浏览器完整 $_ts）> 适配器站点常量
+  // 部分站点服务端使用固定 cd 解密种子，标准流程无法反解，需浏览器真实 $_ts
+  const cp3 = ts.cp3Override !== undefined ? ts.cp3Override
+    : (ts.cp && ts.cp[3] !== undefined ? ts.cp[3]
+    : gv.config.adapt?.cp3Override);
+  if (cp3 !== undefined) {
+    $_ts.cp[3] = cp3;
+    logger.debug(`cp[3] 已被覆盖为: ${cp3}`);
+  }
   gv.config.codemap = codemap;
   const cookie = new Cookie(coder).run();
   gv.metaContent?.forEach(({content, value}) => {

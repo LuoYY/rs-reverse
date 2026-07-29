@@ -30,7 +30,7 @@ class GlobalVarible {
     return cache.decryptKeys;
   }
   get basestr() {
-    // 来自cp2
+    // 来自cp2，用于 cd 解码（86 字符）—— cookie 编码使用单独的 64 字符集（通过 adapt.basestr 配置）
     return 'qrcklmDoExthWJiHAp1sVYKU3RFMQw8IGfPO92bvLNj.7zXBaSnu0TC6gy_4Ze5d{}|~ !#$%()*+,-;=?@[]^';
   }
   get alphabet() {

@@ -143,6 +143,16 @@ module.exports = class {
       }
       return ans;
     }, { arr: [] , prev: undefined}).arr
+    // [debug] 导出 arr2two 原始对，供多轮 shuffle 分析
+    if (process.env.RS_DEBUG_GREN) {
+      const fs = require('fs');
+      fs.writeFileSync(`./output/debug-gren-${current}.json`, JSON.stringify({
+        current,
+        arr2two,
+        codeNum: opmate.getMateOri('G_code_num'),
+        keycodes: current === 0 ? keycodes : undefined,
+      }));
+    }
     opdata.setData('_$$w', arraySwap(arr2two, scd));
     opmate.setMate('_$bf');
     opdata.setData('_$g$', optext.getList().data);
