@@ -8,6 +8,14 @@ rs-reverse（瑞数 VMP 逆向工具）的 fork 工作区，目标适配 pmos.xj
 - **cp[3] 必须用挑战页真实 nsd**（每次请求变）；沙箱执行外层 VM（纯计算，不依赖浏览器指纹）可提取与浏览器逐字节一致的动态代码
 - 管线 Coder 逻辑正确，关键在于"用对 nsd + 沙箱提取真 cp3"
 - basearr 适配器在 src/handler/basearr/len*.js，按站点调整
+- **getCfg strips time/ele**：numarrAddTime 添加的 time/ele 在 getCfg 内被 reverse strip，加密密钥恒为原始 keys16/keys17
+
+## 100% 通过率（2026-07-29 达成）
+- **根因**：`src/handler/parser/common/numarr2string.js` 第 25 行余数编码 bug（用 `numarr[idx+1]` 代替 `numarr[idx]` 取低 2 位）
+- **修复**：`numarr[idx + 1]` -> `numarr[idx]`，30/30 = 100%
+- 之前 ~25% 通过率 = `b0 & 3 == b1 & 3` 的概率（bug 不可见时通过）
+- 所有之前排除的候选（keys/seg0/basearr/加密结构）结论正确，根因确实在编码层
+- pmos_xj_client.js maxRetries 已降至 3
 
 ## 工具依赖
 - Node 18+（sdenv/jsdom 相关需 Node 22，nvm v22.22.0）
@@ -21,7 +29,12 @@ rs-reverse（瑞数 VMP 逆向工具）的 fork 工作区，目标适配 pmos.xj
 - cookie 名 aoU85Lxl9xxN + O/P（lastWord='P'），flag=1801
 - query 参数名 r20SZOQm = keys[7].split(';')[1]（会话相关）
 
-## :20080 的 200/412 概率性（2026-07-28 根因彻底定位）
+## :20080 的 200/412 概率性（2026-07-29 已解决 - numarr2string 编码 bug）
+- **根因已定位并修复**：numarr2string.js 第 25 行余数编码用错变量（b1 代替 b0），导致 ~75% cookie 最后一个编码字符错误
+- **修复后 30/30 = 100%**，pmos_xj_client.js maxRetries 已降至 3
+- 以下为历史排查记录（结论正确但根因在编码层而非密钥/指纹/basearr）
+
+### 历史排查（2026-07-28 根因彻底定位 - 已推翻）
 - **最终根因**：真实 cookie 加密密钥（外层 keys16/内层 keys17）由**内层动态代码运行生成**，不在 cd 静态解密区（ans 滑动窗口枚举全失败）。管线用 cd 静态 ans keys 近似 → 70% 的 cd 密钥错 → 30% 通过率（**密钥问题，非指纹**）。
 - **jsdom 突破**：jsdom 完整环境跑外层 VM + 内层动态代码，瑞数自生成 cookie → **密钥 100% 对**（连续 5 次全 200）。但 jsdom cookie 给警告页（jsdom [0] 指纹与真实根本性差异，cookie 279 字符 vs 真实 428，服务器确定性拒绝 jsdom 指纹，**指纹问题**）。
 - **两因素正交**：管线=密钥30%对+真实指纹(过)→30%业务页；jsdom=密钥100%对+jsdom指纹(拒)→警告页；浏览器=100%对+真实指纹→100%。
@@ -35,7 +48,7 @@ rs-reverse（瑞数 VMP 逆向工具）的 fork 工作区，目标适配 pmos.xj
 - **卡点**：密钥在 JSVMP 闭包（dispatcher while(1) switch），执行后 window.$_ts 仅剩 l__ 函数，深度扫描得 0 候选字节数组 → 纯沙箱无法导出 keys16/17 原始字节数组。需路径A（操作码还原）或 dispatcher 插桩截获。
 - **坑**：脚本须从项目根目录运行（外层 js 相对路径）；jsdom 与 Node vm 沙箱同进程偶发 realm 干扰（Invalid array length），用 gen_jsdom_child.js 子进程隔离。
 
-## :20080 的 200/412 概率性（2026-07-28 晚 根因再修正）
+### 历史排查（2026-07-28 晚 根因再修正 - 已推翻）
 - **keys16/keys17 已证明正确**：8 个全新 cd 浏览器权威对照（Patchright 数组陷阱）8/8 == 管线，累计 19/19（含 jsdom 11 个）。**"keys17 经内层 VM 二次变换、70% cd 管线错"的旧结论被推翻**（旧证据 crux.json 系误抓别的 16 字节数组当 keys17）。
 - **30% 失败根因不在密钥，需重新定位**：管线 cookie 实测 20 个新 cd 仅 20% 200。密钥对 + 指纹真实 → 根因是会话相关因子，候选 codeUid（getCodeUid 的 keys[33] nx VM 回退）/ basearr 会话段 / cookie 绑定测量假象。
 - **cookie 绑定规则已验证（fingerprint-bind，5 轮×7 方式）**：cookie 只认内容——不绑 page 会话/TLS 连接/IP，非一次性（90s 内 9 次重放全 200）。**唯一硬规则：O+P 必须配对**，仅带 P 必 412（与 TLS 指纹无关）。browser-authoritative 的"真实 cookie 重放 5/5 全 412"是测量假象（只带了 P）；**F4"412 cookie 重放也 412 → cookie 坏"证据无效**，需 O+P 配对重放复验。got-scraping + O/P 配对重放是可信测量方式，管线 30% 通过率非测量假象。报告：output/keygen/cookie-bind-report.md。

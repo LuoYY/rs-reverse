@@ -27,7 +27,7 @@ class PmosXjClient {
   constructor(opts = {}) {
     this.baseUrl = opts.baseUrl || TARGET;
     this.ua = opts.ua || UA;
-    this.maxRetries = opts.maxRetries || 25;   // [0] 指纹校验概率性，需重试
+    this.maxRetries = opts.maxRetries || 3;    // 100% 通过率（numarr2string bug 修复后），仅保留少量重试防网络异常
     this.cookieHeader = null;
     this.cookieName = null;
     this.ready = false;
