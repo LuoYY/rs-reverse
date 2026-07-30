@@ -1,0 +1,29 @@
+{
+  "name": "xj-nodejs-v1",
+  "version": "1.0.0",
+  "description": "pmos.xj.sgcc.com.cn:20080 瑞数 VMP 纯协议客户端（独立可移植版）",
+  "main": "pmos_xj_client.js",
+  "scripts": {
+    "start": "node pmos_xj_client.js",
+    "test": "node pmos_xj_client.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "json5": "^2.2.3",
+    "lodash": "^4.17.21",
+    "log4js": "^6.9.1",
+    "module-alias": "^2.2.3",
+    "request": "^2.88.2",
+    "request-promise": "^4.2.6",
+    "sdenv-extract": "^0.1.8"
+  },
+  "_moduleAliases": {
+    "@": ".",
+    "@src": "./src",
+    "@utils": "./utils"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "BSD-3-Clause"
+}
