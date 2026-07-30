@@ -5,7 +5,9 @@ import (
 	"crypto/cipher"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"math/rand"
+	"time"
 )
 
 // combine4: []byte -> []uint32 (big-endian)
@@ -70,8 +72,27 @@ func init() {
 // encryptMode1: AES-CBC encryption with optional IV
 // flag=1: prepend 16-byte random IV
 // flag=0: no IV
+// Key can be 16 bytes (standard AES-128) or 21 bytes (numarrAddTime format: 16+4+1)
+// For 21-byte keys, the getCfg function strips the time/ele suffix to get 16 bytes
 func encryptMode1(valarr, key []byte, flag bool) []byte {
-	block, err := aes.NewCipher(key)
+	// If key length is not 16, strip numarrAddTime suffix (reverse the transform)
+	aesKey := key
+	if len(key) != 16 {
+		// numarrAddTime format: [16-byte key XOR ele][4-byte time XOR ele][ele]
+		// Reverse: pop ele, un-XOR remaining 20 bytes, take first 16
+		if len(key) == 21 {
+			ele := key[20]
+			unxor := make([]byte, 20)
+			for i := 0; i < 20; i++ {
+				unxor[i] = key[i] ^ ele
+			}
+			aesKey = unxor[:16]
+		} else {
+			panic(fmt.Sprintf("encryptMode1: invalid key size %d", len(key)))
+		}
+	}
+
+	block, err := aes.NewCipher(aesKey)
 	if err != nil {
 		panic(err)
 	}
@@ -175,4 +196,32 @@ func numToNumarr2(num int) []byte {
 		num = 0
 	}
 	return []byte{byte(num >> 8 & 255), byte(num & 255)}
+}
+
+// numarrAddTime: append time bytes to key, XOR all with ele, append ele
+// Matches JS: numarrAddTime(numarr, time, random)
+// Returns the modified array (21 bytes for 16-byte key)
+func numarrAddTime(key []byte, runTime int, random float64) []byte {
+	if random == 0 {
+		random = rand.Float64()
+	}
+	ele := int(math.Ceil(random * 256))
+	if ele > 255 {
+		ele = 255
+	}
+	if runTime == 0 {
+		runTime = int(time.Now().Unix())
+	}
+	// Append time bytes (4 bytes big-endian)
+	timeBytes := u32bytes(uint32(runTime))
+	arr := make([]byte, len(key)+len(timeBytes))
+	copy(arr, key)
+	copy(arr[len(key):], timeBytes)
+	// XOR all with ele
+	for i := range arr {
+		arr[i] ^= byte(ele)
+	}
+	// Append ele
+	arr = append(arr, byte(ele))
+	return arr
 }

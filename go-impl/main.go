@@ -34,6 +34,7 @@ type KeygenData struct {
 	PipeNextarr     []int    `json:"pipeNextarr"`
 	PipeUuid        int      `json:"pipeUuid"`
 	HuffConfig      [][]int  `json:"huffConfig"`
+	Random          float64  `json:"random"`
 }
 
 const (
@@ -66,15 +67,18 @@ func generateCookie(data *KeygenData) string {
 	// 2. Huffman encode (pure Go)
 	numenc := numarrEncrypt(basearr)
 
-	// 3. XOR with keys[2]
+	// 3. XOR with keys[2] (cyclic, 16 bytes)
 	keys2 := toBytes(data.Keys2)
 	xorResult := xorBytes(numenc, keys2)
 
-	// 4. Inner AES-CBC encrypt with keys17 (flag=0)
+	// 4. Apply numarrAddTime to keys17: append time bytes, XOR with ele, append ele
 	keys17 := toBytes(data.Keys17)
-	basearrEncrypt := encryptMode1(xorResult, keys17, false)
+	keys17time := numarrAddTime(keys17, data.RunTime, data.Random)
 
-	// 5. Assemble nextarr (hasDebug=true at runtime: high byte = 128)
+	// 5. Inner AES-CBC encrypt with keys17time (flag=0, no IV)
+	basearrEncrypt := encryptMode1(xorResult, keys17time, false)
+
+	// 6. Assemble nextarr (hasDebug=true at runtime: high byte = 128)
 	r2mkaTimeBytes := u32bytes(uint32(data.R2mkaTime))
 	startTimeBytes := u32bytes(uint32(data.StartTime))
 	timeBytes := append(r2mkaTimeBytes, startTimeBytes...)
@@ -82,65 +86,24 @@ func generateCookie(data *KeygenData) string {
 	highByte := byte(int(len(basearrEncrypt)>>8&255) | 128)
 	nextarr := numarrJoin(inner, highByte, basearrEncrypt)
 
-	// 6. Compute uuid of nextarr
+	// 7. Compute uuid of nextarr
 	uuidVal := uuid(nextarr)
 	uuidBytes := u32bytes(uuidVal)
 
-	// 7. Outer AES-CBC encrypt with keys16 (flag=1, with IV)
-	plaintext := append(uuidBytes, nextarr...)
+	// 8. Apply numarrAddTime to keys16
 	keys16 := toBytes(data.Keys16)
-	enc16 := encryptMode1(plaintext, keys16, true)
+	keys16time := numarrAddTime(keys16, data.RunTime, data.Random)
 
-	// 8. Base64-like encode
-	cookieStr := numarr2string(enc16, data.Basestr)
+	// 9. Outer AES-CBC encrypt with keys16time (flag=1, with IV)
+	plaintext := append(uuidBytes, nextarr...)
+	enc16 := encryptMode1(plaintext, keys16time, true)
 
-	// Debug: print intermediate sizes and compare with pipeline
-	if debugMode {
-		fmt.Fprintf(os.Stderr, "  sizes: basearr=%d numenc=%d xor=%d basearrEnc=%d inner=%d nextarr=%d plaintext=%d enc16=%d cookie=%d\n",
-			len(basearr), len(numenc), len(xorResult), len(basearrEncrypt), len(inner), len(nextarr), len(plaintext), len(enc16), len(cookieStr)+1)
-
-		// Compare intermediate values with pipeline
-		pipeNumenc := toBytes(data.PipeNumenc)
-		pipeXor := toBytes(data.PipeXor)
-		pipeBae := toBytes(data.PipeBasearrEnc)
-		pipeNext := toBytes(data.PipeNextarr)
-
-		fmt.Fprintf(os.Stderr, "  numenc match: %v (%d vs %d)\n", bytesEqual(numenc, pipeNumenc), len(numenc), len(pipeNumenc))
-		if !bytesEqual(numenc, pipeNumenc) {
-			for i := 0; i < min(len(numenc), len(pipeNumenc)); i++ {
-				if numenc[i] != pipeNumenc[i] {
-					fmt.Fprintf(os.Stderr, "  numenc first diff at %d: go=%d pipe=%d\n", i, numenc[i], pipeNumenc[i])
-					// Also show the basearr bytes that produced this
-					break
-				}
-			}
-			// Show first 10 bytes of each
-			fmt.Fprintf(os.Stderr, "  numenc go:   %v\n", numenc[:min(10, len(numenc))])
-			fmt.Fprintf(os.Stderr, "  numenc pipe: %v\n", pipeNumenc[:min(10, len(pipeNumenc))])
-		}
-		fmt.Fprintf(os.Stderr, "  xor match:    %v (%d vs %d)\n", bytesEqual(xorResult, pipeXor), len(xorResult), len(pipeXor))
-		if !bytesEqual(xorResult, pipeXor) {
-			for i := 0; i < min(len(xorResult), len(pipeXor)); i++ {
-				if xorResult[i] != pipeXor[i] {
-					fmt.Fprintf(os.Stderr, "  xor first diff at %d: go=%d pipe=%d (numenc=%d key2=%d)\n", i, xorResult[i], pipeXor[i], numenc[i], keys2[i%16])
-					break
-				}
-			}
-		}
-		fmt.Fprintf(os.Stderr, "  baseEnc match: %v (%d vs %d)\n", bytesEqual(basearrEncrypt, pipeBae), len(basearrEncrypt), len(pipeBae))
-		fmt.Fprintf(os.Stderr, "  nextarr match: %v (%d vs %d)\n", bytesEqual(nextarr, pipeNext), len(nextarr), len(pipeNext))
-		fmt.Fprintf(os.Stderr, "  uuid: go=%d pipe=%d match=%v\n", uuidVal, data.PipeUuid, uuidVal == uint32(data.PipeUuid))
-
-		// Find first diff in basearrEncrypt
-		if !bytesEqual(basearrEncrypt, pipeBae) {
-			for i := 0; i < min(len(basearrEncrypt), len(pipeBae)); i++ {
-				if basearrEncrypt[i] != pipeBae[i] {
-					fmt.Fprintf(os.Stderr, "  baseEnc first diff at %d: go=%d pipe=%d\n", i, basearrEncrypt[i], pipeBae[i])
-					break
-				}
-			}
-		}
+	// 10. Base64-like encode
+	basestr := data.Basestr
+	if basestr == "" {
+		basestr = "qrcklmDoExthWJiHAp1sVYKU3RFMQw8IGfPO92bvLNj.7zXBaSnu0TC6gy_4Ze5d{}|~ !#$%()*+,-;=?@[]^"
 	}
+	cookieStr := numarr2string(enc16, basestr)
 
 	return data.CookiePrefix + cookieStr
 }
@@ -248,6 +211,12 @@ func replayCookie(oCookie, cookieName, cookie string) (int, error) {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
+	// Mode: compare coder with fixed session
+	if len(os.Args) > 1 && os.Args[1] == "compare" {
+		mainCompareCoder()
+		return
+	}
+
 	// Mode 1: test cd decryption (./pmos_go test)
 	if len(os.Args) > 1 && os.Args[1] == "test" {
 		testCdDecryption()
@@ -257,7 +226,7 @@ func main() {
 	fmt.Println("=== Go 纯算法 Cookie 生成可行性测试 ===")
 
 	ok, bad := 0, 0
-	for i := 0; i < 15; i++ {
+	for i := 0; i < 30; i++ {
 		// 1. Fetch challenge
 		nsd, cd, oCookie, err := fetchChallenge()
 		if err != nil {
@@ -265,20 +234,47 @@ func main() {
 			continue
 		}
 
-		// 2. Get keys via goja (pure Go, no Node.js dependency)
-		data, err := runKeygenGoja(nsd, cd, targetURL)
+		// 2. Get keys + basearr via pure Go Coder (no Node.js dependency)
+		rootDir, _ := os.Getwd()
+		outerJsPath := filepath.Join(rootDir, "example", "pmos.xj.sgcc.com.cn", "kmOJZ0KVxJ0R", "rGTR1U4jJCVr.303c6e9.js")
+		outerJsBytes, err := readFile(outerJsPath)
 		if err != nil {
-			// Fallback to Node.js helper if goja fails
-			fmt.Printf("#%d goja error: %v, falling back to node\n", i+1, err)
+			fmt.Printf("#%d read outer JS error: %v\n", i+1, err)
+			continue
+		}
+		outerJsCode := string(outerJsBytes)
+
+		// Compute cp3 via goja (outer VM)
+		cp3, err := runOuterVMGoja(nsd, cd, outerJsCode)
+		if err != nil {
+			fmt.Printf("#%d cp3 error: %v\n", i+1, err)
+			continue
+		}
+		if i == 0 {
+			fmt.Printf("  cp3=%d\n", cp3)
+		}
+
+		// Use RunCoderFull (pure Go Coder, no Node.js)
+		data, err := RunCoderFull(nsd, cd, outerJsCode, cp3)
+		if err != nil {
+			// Fallback to Node.js helper
+			fmt.Printf("#%d RunCoderFull error: %v, falling back to node\n", i+1, err)
 			data, err = callKeygenHelper(nsd, cd, oCookie)
 			if err != nil {
 				fmt.Printf("#%d keygenHelper error: %v\n", i+1, err)
 				continue
 			}
 		}
+		if err != nil {
+			fmt.Printf("#%d RunCoderFull error: %v\n", i+1, err)
+			continue
+		}
 
 		// 3. Generate cookie in pure Go
 		goCookie := generateCookie(data)
+		if i == 0 {
+			fmt.Printf("  basearr len=%d cookieLen=%d\n", len(data.Basearr), len(goCookie))
+		}
 
 		// 4. Verify against Node.js reference cookie
 		if i == 0 {
