@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -41,7 +42,16 @@ const (
 	targetURL  = "https://pmos.xj.sgcc.com.cn:20080/"
 	userAgent  = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 	debugMode  = false
+	proxyURL   = "http://74940609:aFmWc5Fs@140.249.234.175:2022"
 )
+
+func mustParseProxy() *url.URL {
+	u, err := url.Parse(proxyURL)
+	if err != nil {
+		return nil
+	}
+	return u
+}
 
 func toBytes(arr []int) []byte {
 	b := make([]byte, len(arr))
@@ -111,9 +121,11 @@ func generateCookie(data *KeygenData) string {
 // fetchChallenge: fetch 412 page, extract nsd/cd/O cookie
 func fetchChallenge() (nsd int, cd, oCookie string, err error) {
 	tr := &http.Transport{
-		TLSClientConfig: tlsConfigSkipVerify(),
+		TLSClientConfig:   tlsConfigSkipVerify(),
+		Proxy:             http.ProxyURL(mustParseProxy()),
+		ForceAttemptHTTP2: true,
 	}
-	client := &http.Client{Transport: tr, Timeout: 15 * time.Second}
+	client := &http.Client{Transport: tr, Timeout: 30 * time.Second}
 
 	resp, err := client.Get(targetURL)
 	if err != nil {
@@ -188,9 +200,11 @@ func callKeygenHelper(nsd int, cd, oCookie string) (*KeygenData, error) {
 // replayCookie: send cookie and check response
 func replayCookie(oCookie, cookieName, cookie string) (int, error) {
 	tr := &http.Transport{
-		TLSClientConfig: tlsConfigSkipVerify(),
+		TLSClientConfig:   tlsConfigSkipVerify(),
+		Proxy:             http.ProxyURL(mustParseProxy()),
+		ForceAttemptHTTP2: true,
 	}
-	client := &http.Client{Transport: tr, Timeout: 15 * time.Second}
+	client := &http.Client{Transport: tr, Timeout: 30 * time.Second}
 
 	req, err := http.NewRequest("GET", targetURL, nil)
 	if err != nil {
@@ -244,18 +258,8 @@ func main() {
 		}
 		outerJsCode := string(outerJsBytes)
 
-		// Compute cp3 via goja (outer VM)
-		cp3, err := runOuterVMGoja(nsd, cd, outerJsCode)
-		if err != nil {
-			fmt.Printf("#%d cp3 error: %v\n", i+1, err)
-			continue
-		}
-		if i == 0 {
-			fmt.Printf("  cp3=%d\n", cp3)
-		}
-
-		// Use RunCoderFull (pure Go Coder, no Node.js)
-		data, err := RunCoderFull(nsd, cd, outerJsCode, cp3)
+		// RunCoderFull computes cp3 internally from Coder output (no goja needed)
+		data, err := RunCoderFull(nsd, cd, outerJsCode, 0)
 		if err != nil {
 			// Fallback to Node.js helper
 			fmt.Printf("#%d RunCoderFull error: %v, falling back to node\n", i+1, err)

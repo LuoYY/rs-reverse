@@ -11,8 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
-	"github.com/dop251/goja"
 )
 
 func jsonUnmarshal(data []byte, v interface{}) error {
@@ -424,58 +422,6 @@ func numToNumarr8Int(num int64) []int {
 	}
 }
 
-// ==================== goja outer VM ====================
-
-func runOuterVMGoja(nsd int, cd, outerJsCode string) (int, error) {
-	vm := goja.New()
-	var capturedEvals []string
-
-	vm.Set("document", map[string]interface{}{
-		"cookie": "", "createElement": func() map[string]interface{} { return map[string]interface{}{"style": map[string]interface{}{}, "setAttribute": func() {}, "getElementsByTagName": func() []interface{} { return nil }} },
-		"getElementsByTagName": func() []interface{} { return nil },
-		"documentElement":      map[string]interface{}{"style": map[string]interface{}{}},
-		"body":                 map[string]interface{}{"appendChild": func() {}}, "hidden": false,
-	})
-	vm.Set("navigator", map[string]interface{}{
-		"userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-		"platform": "MacIntel", "maxTouchPoints": 0, "appName": "Netscape", "appVersion": "5.0", "language": "zh-CN",
-	})
-	vm.Set("screen", map[string]interface{}{"width": 1680, "height": 1050, "availWidth": 1680, "availHeight": 1025, "colorDepth": 24})
-	vm.Set("location", map[string]interface{}{"href": "https://pmos.xj.sgcc.com.cn:20080/", "pathname": "/", "hostname": "pmos.xj.sgcc.com.cn", "protocol": "https:", "reload": func() {}, "replace": func() {}})
-	vm.Set("$_ts", map[string]interface{}{"nsd": nsd, "cd": cd})
-	vm.Set("setTimeout", func(fn goja.Callable) int { fn(goja.Undefined()); return 0 })
-	vm.Set("setInterval", func() int { return 0 })
-	vm.Set("clearInterval", func() {})
-	vm.Set("clearTimeout", func() {})
-	vm.Set("eval", func(call goja.FunctionCall) goja.Value {
-		code := call.Argument(0)
-		if code != goja.Undefined() && code != goja.Null() {
-			s := code.String()
-			if len(s) > 50000 {
-				capturedEvals = append(capturedEvals, s)
-			}
-		}
-		return goja.Undefined()
-	})
-	vm.RunString("var window = this; var self = this; var globalThis = this;")
-	vm.RunString(outerJsCode) // ignore errors
-
-	var dyn string
-	for _, c := range capturedEvals {
-		if len(c) > len(dyn) {
-			dyn = c
-		}
-	}
-	if dyn == "" {
-		return 0, fmt.Errorf("no dynamic code")
-	}
-	sum := 0
-	for i := 0; i < len(dyn); i += 100 {
-		sum += int(dyn[i])
-	}
-	return sum, nil
-}
-
 // ==================== full keygen ====================
 
 func runFullKeygenGo(nsd int, cd, baseUrl string) (*KeygenData, error) {
@@ -484,43 +430,18 @@ func runFullKeygenGo(nsd int, cd, baseUrl string) (*KeygenData, error) {
 	if err != nil {
 		return nil, err
 	}
-	cp3, err := runOuterVMGoja(nsd, cd, string(outerJs))
+
+	// Use RunCoderFull which computes cp3 internally from Coder
+	data, err := RunCoderFull(nsd, cd, string(outerJs), 0)
 	if err != nil {
 		return nil, err
 	}
+	return data, nil
+}
 
-	basestr := "qrcklmDoExthWJiHAp1sVYKU3RFMQw8IGfPO92bvLNj.7zXBaSnu0TC6gy_4Ze5d{}|~ !#$%()*+,-;=?@[]^"
-	initConstData(basestr)
-	keys := parseCdToKeys(cd, cp3)
-
-	now := time.Now()
-	runTime := int(now.Unix())
-	startTime := runTime - 1
-	r2mkaTime := 0
-	if len(keys) > 21 && len(keys[21]) > 0 {
-		fmt.Sscanf(goAscii2string(keys[21]), "%d", &r2mkaTime)
-	}
-	// codeUid: ideally computed from coder.code via Babel AST
-	// For now use 0 (server may or may not validate this)
-	codeUid := 0
-
-	// Build basearr in pure Go (cp1 not available here, use empty for fixedValue20 fallback)
-	basearr := buildBasearrGoPure(keys, r2mkaTime, startTime, runTime, codeUid, cp3, nil)
-
-	return &KeygenData{
-		Basearr:      basearr,
-		Keys2:        keys[2],
-		Keys16:       keys[16],
-		Keys17:       keys[17],
-		R2mkaTime:    r2mkaTime,
-		StartTime:    startTime,
-		RunTime:      runTime,
-		CodeUid:      codeUid,
-		Basestr:      basestr,
-		CookieName:   "aoU85Lxl9xxNP",
-		CookiePrefix: "0",
-		Random:       0, // will be generated in generateCookie
-	}, nil
+// runKeygenGoja: legacy entry point, now uses RunCoderFull (no goja)
+func runKeygenGoja(nsd int, cd, baseUrl string) (*KeygenData, error) {
+	return runFullKeygenGo(nsd, cd, baseUrl)
 }
 
 // buildBasearrGoPure generates basearr entirely in Go, using hardcoded site constants
@@ -920,11 +841,6 @@ func goDecrypt(s string) []int {
 	// decode.js: trans(numarr) converts byte array through UTF-8-like decoding
 	// For ASCII strings, this is identity
 	return goString2ascii(s)
-}
-
-// runKeygenGoja: try pure Go first, fall back to Node.js helper
-func runKeygenGoja(nsd int, cd, baseUrl string) (*KeygenData, error) {
-	return runFullKeygenGo(nsd, cd, baseUrl)
 }
 
 // ==================== fixedValue20 ====================

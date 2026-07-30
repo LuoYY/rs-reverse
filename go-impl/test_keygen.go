@@ -18,28 +18,21 @@ func testCdDecryption() {
 	}
 	fmt.Printf("nsd=%d cd_len=%d\n", nsd, len(cd))
 
-	// Get cp3 via goja
+	// Get cp3 via Coder (no goja needed)
 	rootDir, _ := os.Getwd()
 	outerJs, _ := os.ReadFile(rootDir + "/example/pmos.xj.sgcc.com.cn/kmOJZ0KVxJ0R/rGTR1U4jJCVr.303c6e9.js")
-	cp3, err := runOuterVMGoja(nsd, cd, string(outerJs))
+	data, err := RunCoderFull(nsd, cd, string(outerJs), 0)
 	if err != nil {
-		fmt.Printf("goja cp3 error: %v\n", err)
+		fmt.Printf("RunCoderFull error: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("cp3=%d\n", cp3)
+	cp3 := data.R2mkaTime // not cp3, need to get from coder
+	_ = cp3
 
-	// Parse cd in pure Go
-	basestr := "qrcklmDoExthWJiHAp1sVYKU3RFMQw8IGfPO92bvLNj.7zXBaSnu0TC6gy_4Ze5d{}|~ !#$%()*+,-;=?@[]^"
-	initConstData(basestr)
-	goKeys := parseCdToKeys(cd, cp3)
-
-	fmt.Printf("Go keys count: %d\n", len(goKeys))
-	if len(goKeys) > 16 {
-		fmt.Printf("Go keys16: %v\n", goKeys[16])
-	}
-	if len(goKeys) > 17 {
-		fmt.Printf("Go keys17: %v\n", goKeys[17])
-	}
+	// Use the data from RunCoderFull directly
+	fmt.Printf("Go keys count: %d\n", len(data.Keys16))
+	fmt.Printf("Go keys16: %v\n", data.Keys16)
+	fmt.Printf("Go keys17: %v\n", data.Keys17)
 
 	// Get Node.js reference
 	tsJSON := fmt.Sprintf(`{"nsd":%d,"cd":%q,"from":"https://pmos.xj.sgcc.com.cn:20080/"}`, nsd, cd)
@@ -61,14 +54,8 @@ func testCdDecryption() {
 	fmt.Printf("Node keys17: %v\n", ref.Keys17)
 
 	// Compare
-	k16Match := intSliceEqual(goKeys[16], ref.Keys16)
-	k17Match := intSliceEqual(goKeys[17], ref.Keys17)
-	k2Match := intSliceEqual(goKeys[2], ref.Keys2)
+	k16Match := bytesEqual(toBytes(data.Keys16), toBytes(ref.Keys16))
+	k17Match := bytesEqual(toBytes(data.Keys17), toBytes(ref.Keys17))
+	k2Match := bytesEqual(toBytes(data.Keys2), toBytes(ref.Keys2))
 	fmt.Printf("\n=== keys16 match: %v, keys17 match: %v, keys2 match: %v ===\n", k16Match, k17Match, k2Match)
-}
-
-func intSliceEqual(a, b []int) bool {
-	if len(a) != len(b) { return false }
-	for i := range a { if a[i] != b[i] { return false } }
-	return true
 }

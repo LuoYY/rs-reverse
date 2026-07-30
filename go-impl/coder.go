@@ -307,9 +307,12 @@ func (c *Coder) Run() *Coder {
 	}
 
 	// parseTs: compute cp[3]
+	// JS: for (let i = 0; i < codeStr.length; i += 100) flag += codeStr.charCodeAt(i)
+	// Must use rune indexing (UTF-16 code unit equivalent), not byte indexing
+	codeRunes := []rune(c.code)
 	flag := 0
-	for i := 0; i < len(c.code); i += 100 {
-		flag += int(c.code[i])
+	for i := 0; i < len(codeRunes); i += 100 {
+		flag += int(codeRunes[i])
 	}
 	c.Ts.Cp[3] = flag
 
@@ -384,9 +387,10 @@ func (c *Coder) parseGlobalText1(codeArr []string) []string {
 	codeArr = append(codeArr, closingBraces[excess:])
 
 	// mainFunctionIdx end
+	// JS: codeArr.join('').length — counts UTF-16 code units, not bytes
 	totalLen := 0
 	for _, s := range codeArr {
-		totalLen += len(s)
+		totalLen += len([]rune(s))
 	}
 	c.mainFunctionIdx = append(c.mainFunctionIdx, totalLen)
 
@@ -565,9 +569,10 @@ func (c *Coder) gren(current int, codeArr *[]string) {
 	if current > 0 {
 		if len(c.mainFunctionIdx) == 0 {
 			// mainFunctionIdx start
+			// JS: codeArr.join('').length - counts UTF-16 code units
 			totalLen := 0
 			for _, s := range *codeArr {
-				totalLen += len(s)
+				totalLen += len([]rune(s))
 			}
 			c.mainFunctionIdx = []int{totalLen}
 		}
@@ -908,10 +913,18 @@ func loadImmucfgFromFiles(dir string) (*ImmuCfgRaw, error) {
 
 // ComputeCodeUid computes the codeUid from the Coder output.
 // codeUid = (uuid(funcCode) ^ uuid(sliceCode)) & 65535
+// All string operations use rune indexing to match JS charCodeAt/substr behavior
 func ComputeCodeUid(c *Coder, keys33, keys34 int) int {
-	mainFnCode := ""
+	// Convert code to runes for JS-compatible indexing
+	codeRunes := []rune(c.code)
+
+	var mainFnRunes []rune
 	if len(c.mainFunctionIdx) >= 2 {
-		mainFnCode = c.code[c.mainFunctionIdx[0]:c.mainFunctionIdx[1]]
+		start := c.mainFunctionIdx[0]
+		end := c.mainFunctionIdx[1]
+		if end <= len(codeRunes) && start <= end {
+			mainFnRunes = codeRunes[start:end]
+		}
 	}
 
 	funcIdx := keys33
@@ -924,16 +937,23 @@ func ComputeCodeUid(c *Coder, keys33, keys34 int) int {
 	if validIdx < len(c.FunctionsNameSort) {
 		funcCode = c.FunctionsNameSort[validIdx].Code
 	} else {
-		funcCode = mainFnCode[:100]
+		// Fallback: first 100 chars of main function
+		if len(mainFnRunes) >= 100 {
+			funcCode = string(mainFnRunes[:100])
+		} else {
+			funcCode = string(mainFnRunes)
+		}
 	}
 
-	mainFnLen := len(mainFnCode)
+	// JS: len = parseInt(mainFnCode.length / 100)
+	// mainFnCode.length is UTF-16 code unit count = rune count
+	mainFnLen := len(mainFnRunes)
 	sliceLen := mainFnLen / 100
 	sliceStart := sliceLen * keys34
 
 	var sliceCode string
 	if sliceStart+sliceLen <= mainFnLen {
-		sliceCode = mainFnCode[sliceStart : sliceStart+sliceLen]
+		sliceCode = string(mainFnRunes[sliceStart : sliceStart+sliceLen])
 	}
 
 	uid1 := uuidString(funcCode)
@@ -979,11 +999,10 @@ func RunCoderFull(nsd int, cd, outerJsCode string, cp3Override int) (*KeygenData
 	coder := NewCoder(nsd, cd, immucfg, keynameNum)
 	coder.Run()
 
-	// 4. Get cp3 - prefer goja's cp3Override (correct), fallback to Coder's cp3
-	cp3 := cp3Override
-	if cp3 == 0 {
-		cp3 = coder.Ts.Cp[3].(int)
-	}
+	// 4. Get cp3 from Coder (computed from generated code using rune indexing)
+	// This matches JS: for (let i=0; i<codeStr.length; i+=100) flag += codeStr.charCodeAt(i)
+	// No goja/outer VM needed - Coder's cp3 == outer VM's cp3 (verified)
+	cp3 := coder.Ts.Cp[3].(int)
 
 	// 5. Initialize const data (required for decryptCd)
 	basestr := "qrcklmDoExthWJiHAp1sVYKU3RFMQw8IGfPO92bvLNj.7zXBaSnu0TC6gy_4Ze5d{}|~ !#$%()*+,-;=?@[]^"
