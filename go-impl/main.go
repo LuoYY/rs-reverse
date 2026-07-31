@@ -1,15 +1,12 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -162,39 +159,10 @@ func fetchChallenge() (nsd int, cd, oCookie string, err error) {
 	return nsd, cd, oCookie, nil
 }
 
-// callKeygenHelper: call Node.js helper to get keys + basearr
+// callKeygenHelper: REMOVED - no longer needed, RunCoderFull handles everything in pure Go
+// Kept as stub for test_keygen.go reference
 func callKeygenHelper(nsd int, cd, oCookie string) (*KeygenData, error) {
-	rootDir, _ := os.Getwd()
-	helperPath := filepath.Join(rootDir, "go-impl", "keygen_helper.js")
-	if _, err := os.Stat(helperPath); err != nil {
-		helperPath = filepath.Join(filepath.Dir(rootDir), "go-impl", "keygen_helper.js")
-	}
-
-	// Write ts.json
-	tsPath := "/tmp/go-impl-ts.json"
-	tsData := fmt.Sprintf(`{"nsd":%d,"cd":%q,"from":%q}`, nsd, cd, targetURL)
-	os.WriteFile(tsPath, []byte(tsData), 0644)
-
-	cmd := exec.Command("node", helperPath, tsPath)
-	cmd.Dir = rootDir
-	cmd.Env = append(os.Environ(),
-		"NODE_TLS_REJECT_UNAUTHORIZED=0",
-		"NODE_OPTIONS=--dns-result-order=ipv4first",
-	)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-		return nil, fmt.Errorf("keygen helper failed: %v\nstderr: %s", err, stderr.String())
-	}
-
-	var data KeygenData
-	err = json.Unmarshal(stdout.Bytes(), &data)
-	if err != nil {
-		return nil, fmt.Errorf("JSON parse failed: %v\nstdout: %s", err, stdout.String()[:min(500, len(stdout.String()))])
-	}
-	return &data, nil
+	return nil, fmt.Errorf("callKeygenHelper removed - use RunCoderFull instead")
 }
 
 // replayCookie: send cookie and check response
@@ -237,6 +205,12 @@ func main() {
 		return
 	}
 
+	// Mode: test POST (./pmos_go post)
+	if len(os.Args) > 1 && os.Args[1] == "post" {
+		testGoPost()
+		return
+	}
+
 	fmt.Println("=== Go 纯算法 Cookie 生成可行性测试 ===")
 
 	ok, bad := 0, 0
@@ -258,17 +232,8 @@ func main() {
 		}
 		outerJsCode := string(outerJsBytes)
 
-		// RunCoderFull computes cp3 internally from Coder output (no goja needed)
+		// RunCoderFull computes everything internally (pure Go, no JS runtime)
 		data, err := RunCoderFull(nsd, cd, outerJsCode, 0)
-		if err != nil {
-			// Fallback to Node.js helper
-			fmt.Printf("#%d RunCoderFull error: %v, falling back to node\n", i+1, err)
-			data, err = callKeygenHelper(nsd, cd, oCookie)
-			if err != nil {
-				fmt.Printf("#%d keygenHelper error: %v\n", i+1, err)
-				continue
-			}
-		}
 		if err != nil {
 			fmt.Printf("#%d RunCoderFull error: %v\n", i+1, err)
 			continue
