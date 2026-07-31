@@ -1,0 +1,1 @@
+{"candidates":[],"vmCtx":null,"dispatcherArgs":null,"err":"Converting circular structure to JSON\n    --> starting at object with constructor 'Window'\n    --- property 'window' closes the circle"}
