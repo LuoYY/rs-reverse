@@ -3,6 +3,10 @@
 ## 项目
 rs-reverse（瑞数 VMP 逆向工具）的 fork 工作区，目标适配 pmos.xj.sgcc.com.cn（443 与 :20080 两部署）。
 
+## 用户要求
+- **不接受 CDP 代理方案**（pmos_xj_post_client.js），不要在任何回复中提及或推荐
+- 目标：纯算法生成 query 参数，不依赖浏览器
+
 ## 核心方法论（瑞数 VMP 纯算法）
 - cookie 生成链路：拉 412 挑战页解析 $_ts.nsd/cd → 沙箱执行外层 VM 提取动态代码/cp[3] → cp3Override 注入管线 Coder → cd解密→keys→basearr→Cookie 加密 → O+P 重放
 - **cp[3] 必须用挑战页真实 nsd**（每次请求变）；沙箱执行外层 VM（纯计算，不依赖浏览器指纹）可提取与浏览器逐字节一致的动态代码
@@ -28,6 +32,38 @@ rs-reverse（瑞数 VMP 逆向工具）的 fork 工作区，目标适配 pmos.xj
 - 412 挑战页内联 $_ts.nsd/cd（每次变）+ 外层 js /kmOJZ0KVxJ0R/rGTR1U4jJCVr.303c6e9.js
 - cookie 名 aoU85Lxl9xxN + O/P（lastWord='P'），flag=1801
 - query 参数名 r20SZOQm = keys[7].split(';')[1]（会话相关）
+
+## Query 参数逆向（2026-07-31 完全破解）
+- **query 结构**：119 字符 = '0' + numarr2string(88 bytes, basestr)
+- **88 字节** = [CRC32(4B 大端)] [1] [0] [48] [session_data 48B] [32] [request_data 32B]
+- **前 4 字节是 CRC32 校验和**（非随机 nonce），CRC32(bytes[4..87])，16/16 验证通过
+- **session_data = keys[2] 原始 48B**（非加密！），跨 URL/请求固定
+- **request_data = encryptMode1(plain24, numarrAddTime(keys17,now,random)[0], flag=0)**
+- **plain24 = [keys2[0:8]^PREFIX_MASK 8B][rand×5][rand×3][0xb7,rand×2][rand][CRC32(url.toUpperCase())]**
+- **PREFIX_MASK = [0x0b,0x16,0x00,0x10,0x00,0x31,0x00,0x01]**（跨 5 会话恒定，服务器只校验 prefix[0..7]）
+- 服务器校验范围：prefix[0..7] + url_crc(20-23) + 88B CRC32；其余字段随机即可
+- **纯 Node 端到端 18/18 全 200**（3 会话 × 6 请求）
+- 可复用模块：`wb-dsv4flash/query_gen_module.js`（PmosQueryClient：init→get/post）
+- 完整文档：`wb-dsv4flash/BREAKTHROUGH.md`
+- **query 和 cookie 共享管线**（encryptMode1/2 + basestr + numarrJoin + CRC32）
+- **RS send/open/fetch = VM trampoline**（同名函数，伪装 [native code]）
+- **Function.prototype.toString.call() 绕过伪装**，获取真实源码
+- **CDP Runtime.getProperties 提取 [[Scopes]]**（5 层闭包，1196 个函数）
+- **basestr ��提取**：`qrcklmDoExthWJiHAp1sVYKU3RFMQw8IGfPO92bvLNj.7zXBaSnu0TC6gy_4Ze5d{}|~ !#$%()*+,-;=?@[]^`
+- **常量池含所有加密算法常数**：AES(0x11b, S-Box) + XXTEA(0x9e3779b9) + MD5 + SHA-1 + CRC32
+- **VM bytecode 完整反编译**：94 个操作码，query 生成流程完全推导
+- **AES encode 函数定位**：`_$jT` = 管线 `encode`（相同的 S-Box 查找逻辑）
+- **S-Box 是站点固定的**（不同 nsd/cd 验证一致）→ 管线 cfgnum 通用
+- **query 密钥 == keys17**（2026-07-31 完全验证）
+- **query 加密 = encryptMode1(plaintext_24B, numarrAddTime(keys17), 0)**
+- **session_data = keys[2]**（cd 解密产物，48B XOR 密钥）— 同会话验证 ✅
+- **明文 24B**：[random_13B][random_3B][183][0][counter_2B][CRC32(URL.toUpperCase())_4B]
+- **bytes[0-12] 和 byte[17] 用随机值/0 填充，RS 不校验**
+- **纯算法 POST 已通过 RS 验证**：无 query→412，有 query→非 412（RS 放行）
+- **query 生成公式**：`'0' + numarr2string([CRC32_BE, 1, 0, 48, ...keys[2], 32, ...encryptMode1(pt, keys17+time, 0)])`
+- **Send hook VM bytecode**：77 元素，115 操作码完整解码
+- **可用方案**：GET 纯算法 100%，POST 纯算法 RS 层通过（业务层 400 待解决，可能是 TLS 指纹）
+- **分析文档**：wb-qwen38/ANALYSIS.md，纯算法客户端：wb-qwen38/27_pure_post.js
 
 ## :20080 的 200/412 概率性（2026-07-29 已解决 - numarr2string 编码 bug）
 - **根因已定位并修复**：numarr2string.js 第 25 行余数编码用错变量（b1 代替 b0），导致 ~75% cookie 最后一个编码字符错误
