@@ -17,6 +17,7 @@ type KeygenData struct {
 	Keys2           []int    `json:"keys2"`
 	Keys16          []int    `json:"keys16"`
 	Keys17          []int    `json:"keys17"`
+	Keys7           []int    `json:"keys7"`
 	R2mkaTime       int      `json:"r2mkaTime"`
 	StartTime       int      `json:"startTime"`
 	RunTime         int      `json:"runTime"`
@@ -208,6 +209,12 @@ func main() {
 	// Mode: test POST (./pmos_go post)
 	if len(os.Args) > 1 && os.Args[1] == "post" {
 		testGoPost()
+		return
+	}
+
+	// Mode: test query generation (./pmos_go query [url] [method])
+	if len(os.Args) > 1 && os.Args[1] == "query" {
+		testGoQuery(os.Args)
 		return
 	}
 

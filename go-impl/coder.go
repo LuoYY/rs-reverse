@@ -1037,6 +1037,7 @@ func RunCoderFull(nsd int, cd, outerJsCode string, cp3Override int) (*KeygenData
 	return &KeygenData{
 		Basearr:      basearr,
 		Keys2:        keys[2],
+		Keys7:        keys[7],
 		Keys16:       keys[16],
 		Keys17:       keys[17],
 		R2mkaTime:    r2mkaTime,
