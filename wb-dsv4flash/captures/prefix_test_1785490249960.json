@@ -1,0 +1,121 @@
+{
+  "plain": [
+    117,
+    73,
+    115,
+    131,
+    150,
+    204,
+    209,
+    148,
+    35,
+    88,
+    114,
+    132,
+    45,
+    146,
+    215,
+    3,
+    183,
+    130,
+    138,
+    17,
+    127,
+    51,
+    148,
+    157
+  ],
+  "key21": [
+    36,
+    118,
+    237,
+    75,
+    108,
+    93,
+    117,
+    124,
+    40,
+    185,
+    35,
+    32,
+    37,
+    34,
+    38,
+    36,
+    74,
+    76,
+    75,
+    96,
+    32
+  ],
+  "results": [
+    {
+      "name": "基线(重构)",
+      "status": 400
+    },
+    {
+      "name": "prefix[0] XOR 1",
+      "status": 400
+    },
+    {
+      "name": "prefix[1] XOR 1",
+      "status": 400
+    },
+    {
+      "name": "prefix[2] XOR 1",
+      "status": 400
+    },
+    {
+      "name": "prefix[3] XOR 1",
+      "status": 400
+    },
+    {
+      "name": "prefix[4] XOR 1",
+      "status": 400
+    },
+    {
+      "name": "prefix[5] XOR 1",
+      "status": 400
+    },
+    {
+      "name": "prefix[6] XOR 1",
+      "status": 400
+    },
+    {
+      "name": "prefix[7] XOR 1",
+      "status": 400
+    },
+    {
+      "name": "prefix[8] XOR 1",
+      "status": 200
+    },
+    {
+      "name": "prefix[9] XOR 1",
+      "status": 200
+    },
+    {
+      "name": "prefix[10] XOR 1",
+      "status": 200
+    },
+    {
+      "name": "prefix[11] XOR 1",
+      "status": 200
+    },
+    {
+      "name": "prefix[12] XOR 1",
+      "status": 200
+    },
+    {
+      "name": "counter+2",
+      "status": 200
+    },
+    {
+      "name": "time[0]=0x11",
+      "status": 200
+    },
+    {
+      "name": "url_crc[0]+1",
+      "status": 400
+    }
+  ]
+}
