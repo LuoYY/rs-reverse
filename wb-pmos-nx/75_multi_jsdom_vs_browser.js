@@ -84,30 +84,12 @@ function identifyKeys(arrs) {
   return { keys16, keys17, keys2, counts: { c16: Object.keys(count16).length, c48: Object.keys(count48).length } };
 }
 
-/** 浏览器数组陷阱抓 keys（自然 cd）——返回 { keys, challenge } */
+/** 浏览器 global 函数 hook 抓 keys（自然 cd）——58 验证过的方法 */
 async function browserKeys(browser, nsdCd) {
   const context = await browser.newContext({ ignoreHTTPSErrors: true, userAgent: UA, proxy: PROXY });
-  // 注入数组陷阱（不注入 $_ts，浏览器自然跑）
-  await context.addInitScript(() => {
-    const found = [];
-    window.__arrs = found;
-    const rec = (arr) => {
-      if (!arr || typeof arr !== 'object') return;
-      const a = Array.isArray(arr) ? arr : (ArrayBuffer.isView(arr) ? Array.from(arr) : null);
-      if (!a) return;
-      if ((a.length === 16 || a.length === 48) && a.every(b => typeof b === 'number' && b >= 0 && b <= 255) && found.length < 100) found.push(a);
-    };
-    for (const C of [Array, Uint8Array]) {
-      if (!C) continue;
-      for (const m of ['slice', 'concat', 'map', 'filter', 'flat', 'subarray']) {
-        const o = C.prototype[m];
-        if (typeof o === 'function') C.prototype[m] = function () { const r = o.apply(this, arguments); rec(r); return r; };
-      }
-    }
-    const of = Array.from;
-    if (of) Array.from = function () { const r = of.apply(this, arguments); rec(r); return r; };
-  });
   const page = await context.newPage();
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Runtime.enable');
   let challenge = null;
   page.on('response', async (resp) => {
     if (resp.status() === 412 && !challenge) {
@@ -123,12 +105,78 @@ async function browserKeys(browser, nsdCd) {
   await page.waitForTimeout(10000);
   await page.reload({ timeout: 120000 }).catch(() => {});
   await page.waitForTimeout(12000);
+
+  // 定位 global（send 闭包链，58 的方法）
+  const sendSrcR = await cdp.send('Runtime.evaluate', { expression: 'Function.prototype.toString.call(XMLHttpRequest.prototype.send)', returnByValue: true });
+  const dm = sendSrcR.result.value.match(/([_$\w]+)\(([_$\w]+),0,([_$\w]+)\.([_$\w]+)\.length,([_$\w]+)\)/);
+  const dName = dm[1];
+  const sendObj = await cdp.send('Runtime.evaluate', { expression: 'XMLHttpRequest.prototype.send' });
+  const sendProps = await cdp.send('Runtime.getProperties', { objectId: sendObj.result.objectId, ownProperties: true });
+  let scopesId;
+  for (const ip of (sendProps.internalProperties || [])) { if (ip.name === '[[Scopes]]') scopesId = ip.value.objectId; }
+  const scopes = await cdp.send('Runtime.getProperties', { objectId: scopesId, ownProperties: true });
+  let dId;
+  for (const scope of scopes.result) {
+    if (!scope.value?.objectId) continue;
+    const vars = await cdp.send('Runtime.getProperties', { objectId: scope.value.objectId, ownProperties: true });
+    for (const v of vars.result) { if (v.name === dName && v.value?.type === 'function') dId = v.value.objectId; }
+  }
+  const dProps = await cdp.send('Runtime.getProperties', { objectId: dId, ownProperties: true });
+  let dScopesId;
+  for (const ip of (dProps.internalProperties || [])) { if (ip.name === '[[Scopes]]') dScopesId = ip.value.objectId; }
+  const dScopes = await cdp.send('Runtime.getProperties', { objectId: dScopesId, ownProperties: true });
+  let globalId = null;
+  for (const scope of dScopes.result) {
+    if (!scope.value?.objectId) continue;
+    const vars = await cdp.send('Runtime.getProperties', { objectId: scope.value.objectId, ownProperties: true });
+    for (const v of vars.result) {
+      if (!v.value?.objectId) continue;
+      if (v.value.description === 'Array(607)') {
+        const chk = await cdp.send('Runtime.callFunctionOn', { objectId: v.value.objectId, functionDeclaration: 'function(){ return JSON.stringify({ t185: typeof this[185] }); }', returnByValue: true });
+        if (JSON.parse(chk.result.value).t185 === 'function') { globalId = v.value.objectId; break; }
+      }
+    }
+    if (globalId) break;
+  }
+  if (!globalId) { console.log('  global 未定位'); await context.close(); return { keys: {}, challenge, count: 0 }; }
+
+  // hook [598]（keys16/17）+ [187]（keys2）
+  await cdp.send('Runtime.callFunctionOn', {
+    objectId: globalId,
+    functionDeclaration: `function(){
+      var self = this;
+      var data = { keys16: [], keys17: [], keys2: [] };
+      function wrap(idx, onCall) {
+        var orig = self[idx];
+        if (typeof orig !== 'function') return;
+        self[idx] = function() {
+          var r = orig.apply(this, arguments);
+          try { onCall(arguments); } catch(e) {}
+          return r;
+        };
+      }
+      wrap(598, function(a) {
+        if (Array.isArray(a[0]) && a[0].length === 16) {
+          if (!data.keys16.length) data.keys16 = a[0].slice();
+          else if (!data.keys17.length && !a[0].every(function(b,i){return b===data.keys16[i]})) data.keys17 = a[0].slice();
+        }
+      });
+      wrap(187, function(a) {
+        if (Array.isArray(a[1]) && a[1].length === 48) data.keys2 = a[1].slice();
+      });
+      self.__bKeys = data;
+      return 'ok';
+    }`,
+    returnByValue: true,
+  });
+
   await page.evaluate(() => { try { var x = new XMLHttpRequest(); x.open('POST', '/px-gateway/GatewayConfig/getGatewayConfig', false); x.setRequestHeader('Content-Type', 'application/json'); x.send('{}'); } catch (e) {} }).catch(() => {});
-  await page.waitForTimeout(1000);
-  const brArrs = await page.evaluate(() => window.__arrs).catch(() => []);
-  const keys = identifyKeys(brArrs || []);
+  await page.waitForTimeout(1500);
+  const keysR = await cdp.send('Runtime.callFunctionOn', { objectId: globalId, functionDeclaration: 'function(){ return JSON.stringify(this.__bKeys || {}); }', returnByValue: true });
+  let keys = {};
+  try { keys = JSON.parse(keysR.result.value); } catch (e) {}
   await context.close();
-  return { keys, challenge, count: (brArrs || []).length };
+  return { keys, challenge, count: keys.keys2 ? 1 : 0 };
 }
 
 async function main() {
