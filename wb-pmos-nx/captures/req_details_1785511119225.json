@@ -1,0 +1,71 @@
+{
+  "capturedAt": 1785511119225,
+  "requests": [
+    {
+      "url": "https://pmos.nx.sgcc.com.cn:10443/px-gateway/GatewayConfig/getGatewayConfig?MurR7rxG=aeDNdSGAqWHydKVpgMPXt0c02W3ZpR6jKBAoRR2rODzhJLHa92le4Brm0nEu_9OPxT0RmihRcaPksL0SHjxaBoK_jjYS8rBGXbpFaHSkyo3WGGiIsngDEaA",
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "Referer": "https://pmos.nx.sgcc.com.cn:10443/",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?0",
+        "MurR7rxG": "a5-L3NGAqWHydKVpgMPXt0c02W3ZpR6jKBAoRR2rODzhJLHa92le4Brm0nEu_9OPxT0RmihRcaPrC2b_O7fFyrweNaJpcymEXqrYjJ6xDwF6vFVAiitziDq"
+      },
+      "protocol": "h2"
+    },
+    {
+      "url": "https://pmos.nx.sgcc.com.cn:10443/px-gateway/GatewayConfig/security?MurR7rxG=aPt49daAqWHydKVpgMPXt0c02W3ZpR6jKBAoRR2rODzhJLHa92le4Brm0nEu_9OPxT0RmihRcaPq1MlXO2aHwJydhqMuoOxANG-smZj-vqw9_1xL2NERw4A",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "Referer": "https://pmos.nx.sgcc.com.cn:10443/",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?0",
+        "MurR7rxG": "az0sJCqAqWHydKVpgMPXt0c02W3ZpR6jKBAoRR2rODzhJLHa92le4Brm0nEu_9OPxT0RmihRcaPcP_x5Vmrot9nRsEZs1vNTFKSd2d35UUUd4uFsbVafEBa"
+      },
+      "protocol": "h2"
+    },
+    {
+      "url": "https://pmos.nx.sgcc.com.cn:10443/px-gateway/GatewayConfig/security?MurR7rxG=ax5fFlaAqWHydKVpgMPXt0c02W3ZpR6jKBAoRR2rODzhJLHa92le4Brm0nEu_9OPxT0RmihRcaPrtDbxhH1XDvc57B0m0UTUKLfwq4gg0NhbHAuK8DaRlUa",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "Referer": "https://pmos.nx.sgcc.com.cn:10443/",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?0",
+        "MurR7rxG": "a15SYWAAqWHydKVpgMPXt0c02W3ZpR6jKBAoRR2rODzhJLHa92le4Brm0nEu_9OPxT0RmihRcaPcOZU0H7_sPMcyc_0_LmBNsn8zud3FK9towMmIRr-FTdq"
+      },
+      "protocol": "h2"
+    },
+    {
+      "url": "https://pmos.nx.sgcc.com.cn:10443/px-gateway/GatewayConfig/getGatewayConfig?MurR7rxG=azgleuAAqWHydKVpgMPXt0c02W3ZpR6jKBAoRR2rODzhJLHa92le4Brm0nEu_9OPxT0RmihRcaPkF4Uid7Aod8bTwk5Hx5fcLWxvMVm6uhMAHOihtJVl0xa",
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "Referer": "https://pmos.nx.sgcc.com.cn:10443/",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+        "Content-Type": "application/json",
+        "sec-ch-ua-mobile": "?0",
+        "MurR7rxG": "akQcsWGAqWHydKVpgMPXt0c02W3ZpR6jKBAoRR2rODzhJLHa92le4Brm0nEu_9OPxT0RmihRcaPcYscGx3Hhyby2GnwQJhrPX2DPG7YrkzvBrxhnBMqQYBG"
+      },
+      "protocol": "h2"
+    }
+  ],
+  "cookies": [
+    {
+      "name": "3RKyaeh47p90O",
+      "value": "qaRfi-cH9BTm-E7mx_ntRnanDLM4fOndtz2LnelWuZNbbriOR7Bv1GQT_p6ujNGkLEKqWNVmMySSvl6aTuMGpt0gJNlbjTL-ZzSf_B8vgMz_A"
+    },
+    {
+      "name": "3RKyaeh47p90P",
+      "value": "an12VyJz8WkNn91IqMzr8kvV4lga7qxEBzBdmvsZOEnJbx4f35_GaFEc7DXHVF870zMBxSVAOcvZ3SQCrSnqLe9VfYQzZUcV9GfG4C7iJHVmsyzpfkeC8ZemputgFul4bB1Ha5NPqFcHWfsIbh88bgycyYrlAC3KwyMhhingFvorozONFfZFjc9QNCBd-CiZVeDTv_gPTYg0DVGGNNy1L71O6eUNth3BcxUFYE5fD55G4A2GsH0IQeouyD_AZxU5kfSUEgtShd0WKKFRQJrihhbsccmQZPVvWB8gGMIXRRZOkxlHmRAeA0FDSj78jG4gQTOybcM1mEXgijGY62Slht-Qvl4LJTYYO26acYsrOF1mEkqnxMHGj9Fkb_swIzf8k9TOkmSk8jBL9qx4XugeGklNU2XEs56Oyyp6bc6OSAS6g_O_DarnOim-cEnuWv2ysxsek2rHwi9H5Od7r0r6BT9FhgmsN0DikTI4_UfWQdCNctBGv83VqNq-UvPzIbcG_a7hL518lF4iTCWXtOTwMSG"
+    }
+  ]
+}

@@ -68,6 +68,12 @@ module.exports = function (numarr) {
   const ans = [];
   const len = numarr.length;
   let one = 0, two = 0;
+  // getKey（padding 常量）站点可配置：nx 站点为 0x68，xj 为默认 0xB8
+  let pad = encryptConfig[1];
+  try {
+    const gv = require('@src/handler/globalVarible');
+    if (gv.config?.adapt?.getKey !== undefined) pad = gv.config.adapt.getKey;
+  } catch (e) {}
   for (let i = 0; i < len; i++) {
     const cfg = encryptConfig[0][numarr[i]];
     one = one << cfg.val | cfg.key;
@@ -79,7 +85,7 @@ module.exports = function (numarr) {
     }
   }
   if (two > 0) {
-    ans.push(one << 8 - two | encryptConfig[1] >> two);
+    ans.push(one << 8 - two | pad >> two);
   }
   return ans;
 }

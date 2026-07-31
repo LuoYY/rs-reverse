@@ -1,0 +1,71 @@
+[
+  {
+    "si": 0,
+    "nsd": 87903,
+    "cdLen": 2258,
+    "jsdom": {
+      "keys16": null,
+      "keys17": null,
+      "keys2": null,
+      "counts": {
+        "c16": 0,
+        "c48": 0
+      }
+    },
+    "browser": {
+      "keys16": null,
+      "keys17": null,
+      "keys2": null,
+      "counts": {
+        "c16": 0,
+        "c48": 0
+      }
+    }
+  },
+  {
+    "si": 1,
+    "nsd": 117713,
+    "cdLen": 2288,
+    "jsdom": {
+      "keys16": null,
+      "keys17": null,
+      "keys2": null,
+      "counts": {
+        "c16": 0,
+        "c48": 0
+      }
+    },
+    "browser": {
+      "keys16": null,
+      "keys17": null,
+      "keys2": null,
+      "counts": {
+        "c16": 0,
+        "c48": 0
+      }
+    }
+  },
+  {
+    "si": 2,
+    "nsd": 109241,
+    "cdLen": 2392,
+    "jsdom": {
+      "keys16": null,
+      "keys17": null,
+      "keys2": null,
+      "counts": {
+        "c16": 0,
+        "c48": 0
+      }
+    },
+    "browser": {
+      "keys16": null,
+      "keys17": null,
+      "keys2": null,
+      "counts": {
+        "c16": 0,
+        "c48": 0
+      }
+    }
+  }
+]

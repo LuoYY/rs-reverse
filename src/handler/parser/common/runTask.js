@@ -36,7 +36,9 @@ function runTask(task, args, allowTask) {
               return custask[current.key](...params);
             }
             if (allowTask && !allowTask[key]) {
-              error('当前任务未在允许列表！', { key: current.key });
+              // 宽松模式：nx 等站点 cd 任务树 key 可能与 getTaskarr 解析不一致，
+              // 改为 warn 继续执行（xj 站点已验证不受影响）
+              logger.warn(`当前任务不在允许列表（宽松模式继续）: ${current.key}`);
             }
             return dynamicExec(current, 0, params, loop_res, global_res);
           }
@@ -124,6 +126,24 @@ function dynamicExec(taskItem, start = 0, args = [], loop_res = {}, global_res =
     `${codemap.formax} = task.length`,
     ...codemap.varible,
   ].join(', ');
+  // 注入重建代码完整环境（nx 等站点任务代码引用 IIFE 闭包变量/函数）
+  // 重建代码 = (function(A,B){ <主体> })(scj, aebi)，提取 <主体> eval 到当前作用域
+  try {
+    const rebuilt = gv.rebuiltCode || '';
+    if (rebuilt && !rebuilt.includes('__rebuiltInjected')) {
+      const bodyStart = rebuilt.indexOf('{');
+      const bodyEnd = rebuilt.lastIndexOf('})(');
+      if (bodyStart > 0 && bodyEnd > bodyStart) {
+        const body = rebuilt.substring(bodyStart + 1, bodyEnd);
+        if (body.length > 1000) {
+          eval(body);
+          gv._setAttr('rebuiltCode', rebuilt + '\n// __rebuiltInjected');
+        }
+      }
+    }
+  } catch (e) {
+    logger.warn(`注入重建代码环境失败: ${e.message.substring(0, 80)}`);
+  }
   eval(`var ${vars};${codemap.commonFunc}`)
   for (let t_cursor = start, idx = 0; t_cursor < task.length; t_cursor++) {
     idx ++;

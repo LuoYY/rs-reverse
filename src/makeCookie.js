@@ -47,6 +47,8 @@ module.exports = function (ts, outputResolve) {
     logger.debug(`cp[3] 已被覆盖为: ${cp3}`);
   }
   gv.config.codemap = codemap;
+  // 保存重建代码，供 runTask 注入完整执行环境（nx 等站点任务代码引用闭包变量）
+  gv._setAttr('rebuiltCode', code);
   const cookie = new Cookie(coder).run();
   gv.metaContent?.forEach(({content, value}) => {
     console.log(`\n存在meta-content值：${content}\n解析结果：${value}`);
