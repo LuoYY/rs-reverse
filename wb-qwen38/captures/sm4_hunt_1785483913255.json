@@ -1,0 +1,47 @@
+{
+  "timestamp": "2026-07-31T07:45:13.255Z",
+  "sm4Findings": [],
+  "allSmallArrays": [],
+  "queries": [
+    {
+      "method": "POST",
+      "url": "https://pmos.xj.sgcc.com.cn:20080/px-gateway/GatewayConfig/getGatewayConfig?r20SZOQm=0XVrNjalqWh75Cx",
+      "query": "0XVrNjalqWh75Cx9dj6MhXWejQJk_RrHJbLAQH93EPfwJn7PRG6b9FLXvtSi94SaBEEOQHICluPrqg65wn9OT_.rLZ9oNr4A_YzqTFssHKEL_xxi4OeRpIA"
+    },
+    {
+      "method": "GET",
+      "url": "https://pmos.xj.sgcc.com.cn:20080/px-gateway/GatewayConfig/security?r20SZOQm=00XRyoqlqWh75Cx9dj6MhXW",
+      "query": "00XRyoqlqWh75Cx9dj6MhXWejQJk_RrHJbLAQH93EPfwJn7PRG6b9FLXvtSi94SaBEEOQHICluPkY1rQ6Efy6NXY9wys4St9Slqj1ZVJYyeg87CI1RD4Jba"
+    },
+    {
+      "method": "POST",
+      "url": "https://pmos.xj.sgcc.com.cn:20080/px-common-authority/marketMapping/selectByCondition?r20SZOQm=0vbcm",
+      "query": "0vbcmuqlqWh75Cx9dj6MhXWejQJk_RrHJbLAQH93EPfwJn7PRG6b9FLXvtSi94SaBEEOQHICluPq2QISdiBPZFSK_El.lNfb.TaJ4M3T5IWfG5a.xmmdHNA"
+    },
+    {
+      "method": "POST",
+      "url": "https://pmos.xj.sgcc.com.cn:20080/px-common-authcenter/auth/v2/captcha/get?r20SZOQm=0HoqkyqlqWh75Cx9",
+      "query": "0HoqkyqlqWh75Cx9dj6MhXWejQJk_RrHJbLAQH93EPfwJn7PRG6b9FLXvtSi94SaBEEOQHICluPqt8EoB3TewQlD3.YgXoXwCSnHoditbYSOUrZYqKyoZRq"
+    },
+    {
+      "method": "POST",
+      "url": "https://pmos.xj.sgcc.com.cn:20080/px-contract-extranet/config/queryPlatformAddress?r20SZOQm=0xN4TUal",
+      "query": "0xN4TUalqWh75Cx9dj6MhXWejQJk_RrHJbLAQH93EPfwJn7PRG6b9FLXvtSi94SaBEEOQHICluPqF7sm8y7lY0R8gSVwoLCcDb4VHKCnYB00c3UdvPGu52G"
+    },
+    {
+      "method": "POST",
+      "url": "https://pmos.xj.sgcc.com.cn:20080/px-common-authcenter/auth/v2/verifyType/get?r20SZOQm=0FrxLQalqWh75",
+      "query": "0FrxLQalqWh75Cx9dj6MhXWejQJk_RrHJbLAQH93EPfwJn7PRG6b9FLXvtSi94SaBEEOQHICluPcaqRHujU8OUGyuIHJyHZ1r6OUWir20jJk73YVugy8unG"
+    },
+    {
+      "method": "GET",
+      "url": "https://pmos.xj.sgcc.com.cn:20080/px-gateway/GatewayConfig/security?r20SZOQm=0pMhY2qlqWh75Cx9dj6MhXW",
+      "query": "0pMhY2qlqWh75Cx9dj6MhXWejQJk_RrHJbLAQH93EPfwJn7PRG6b9FLXvtSi94SaBEEOQHICluPrZpLF9hRIw02c9xOhlXpnfQj2RrqPrQ0IZ3biSDav05A"
+    },
+    {
+      "method": "POST",
+      "url": "https://pmos.xj.sgcc.com.cn:20080/px-gateway/GatewayConfig/getGatewayConfig?r20SZOQm=02jhgkqlqWh75Cx",
+      "query": "02jhgkqlqWh75Cx9dj6MhXWejQJk_RrHJbLAQH93EPfwJn7PRG6b9FLXvtSi94SaBEEOQHICluPkYsexTCNfhL6th85JVCcB92eOtCNU69yYteCGDcyu0Kq"
+    }
+  ]
+}

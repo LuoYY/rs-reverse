@@ -1,0 +1,260 @@
+[
+  {
+    "idx": 1,
+    "type": "string",
+    "value": "tFsUpon3"
+  },
+  {
+    "idx": 3,
+    "type": "number",
+    "value": 545329152
+  },
+  {
+    "idx": 5,
+    "type": "number",
+    "value": 10.125
+  },
+  {
+    "idx": 6,
+    "type": "number",
+    "value": 162
+  },
+  {
+    "idx": 7,
+    "type": "number",
+    "value": 16777216
+  },
+  {
+    "idx": 8,
+    "type": "array",
+    "length": 8
+  },
+  {
+    "idx": 9,
+    "type": "number",
+    "value": 1
+  },
+  {
+    "idx": 10,
+    "type": "number",
+    "value": 4
+  },
+  {
+    "idx": 14,
+    "type": "number",
+    "value": -1
+  },
+  {
+    "idx": 16,
+    "type": "array",
+    "length": 137
+  },
+  {
+    "idx": 18,
+    "type": "number",
+    "value": 1370982918
+  },
+  {
+    "idx": 23,
+    "type": "number",
+    "value": 6
+  },
+  {
+    "idx": 24,
+    "type": "object",
+    "keys": [
+      "nsd",
+      "cd",
+      "lcd",
+      "cp",
+      "jf",
+      "aebi",
+      "scj",
+      "_$a4"
+    ]
+  },
+  {
+    "idx": 25,
+    "type": "number",
+    "value": 1
+  },
+  {
+    "idx": 27,
+    "type": "string",
+    "value": "LOcUDiLjCXcb"
+  },
+  {
+    "idx": 28,
+    "type": "object",
+    "keys": [
+      "_$eL",
+      "_$bd",
+      "_$ar",
+      "_$a5",
+      "_$$3"
+    ]
+  },
+  {
+    "idx": 30,
+    "type": "array",
+    "length": 45
+  },
+  {
+    "idx": 35,
+    "type": "object",
+    "keys": [
+      "_$cX",
+      "_$cL",
+      "_$hx",
+      "_$b9",
+      "_$ff",
+      "_$aZ",
+      "_$iA",
+      "_$dn"
+    ]
+  },
+  {
+    "idx": 37,
+    "type": "string",
+    "value": "/"
+  },
+  {
+    "idx": 40,
+    "type": "number",
+    "value": 131411
+  },
+  {
+    "idx": 41,
+    "type": "string",
+    "value": ""
+  },
+  {
+    "idx": 50,
+    "type": "array",
+    "length": 49
+  },
+  {
+    "idx": 51,
+    "type": "string",
+    "value": ""
+  },
+  {
+    "idx": 54,
+    "type": "boolean",
+    "value": false
+  },
+  {
+    "idx": 55,
+    "type": "array",
+    "length": 96
+  },
+  {
+    "idx": 56,
+    "type": "array",
+    "length": 96
+  },
+  {
+    "idx": 58,
+    "type": "array",
+    "length": 96
+  },
+  {
+    "idx": 59,
+    "type": "array",
+    "length": 96
+  },
+  {
+    "idx": 60,
+    "type": "array",
+    "length": 96
+  },
+  {
+    "idx": 61,
+    "type": "array",
+    "length": 209
+  },
+  {
+    "idx": 62,
+    "type": "array",
+    "length": 96
+  },
+  {
+    "idx": 63,
+    "type": "array",
+    "length": 96
+  },
+  {
+    "idx": 64,
+    "type": "array",
+    "length": 96
+  },
+  {
+    "idx": 65,
+    "type": "array",
+    "length": 96
+  },
+  {
+    "idx": 67,
+    "type": "array",
+    "length": 96
+  },
+  {
+    "idx": 68,
+    "type": "object",
+    "keys": [
+      "window",
+      "self",
+      "document",
+      "name",
+      "location",
+      "customElements",
+      "history",
+      "navigation",
+      "locationbar",
+      "menubar"
+    ]
+  },
+  {
+    "idx": 69,
+    "type": "object",
+    "keys": [
+      "location"
+    ]
+  },
+  {
+    "idx": 72,
+    "type": "array",
+    "length": 96
+  },
+  {
+    "idx": 81,
+    "type": "array",
+    "length": 96
+  },
+  {
+    "idx": 94,
+    "type": "object",
+    "keys": []
+  },
+  {
+    "idx": 119,
+    "type": "object",
+    "keys": [
+      "ancestorOrigins",
+      "href",
+      "origin",
+      "protocol",
+      "host",
+      "hostname",
+      "port",
+      "pathname",
+      "search",
+      "hash"
+    ]
+  },
+  {
+    "idx": 145,
+    "type": "object",
+    "keys": []
+  }
+]

@@ -1,0 +1,1 @@
+function apply() { [native code] }
