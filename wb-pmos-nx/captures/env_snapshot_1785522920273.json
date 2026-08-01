@@ -1,0 +1,28 @@
+{
+  "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+  "platform": "MacIntel",
+  "language": "en-US",
+  "hardwareConcurrency": 18,
+  "plugins": [],
+  "screen": {
+    "w": 1280,
+    "h": 720,
+    "aw": 1280,
+    "ah": 720,
+    "cd": 24,
+    "pd": 24,
+    "drp": 1
+  },
+  "inner": {
+    "w": 1280,
+    "h": 720,
+    "ow": 1280,
+    "oh": 720
+  },
+  "timezone": -480,
+  "canvasDataURL": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANwAAAAeCAYAAABHenA+AAAQAElEQVR4AexbC2CUxbX+5t/Ni0AggRjCQ8EAIvYiYAV8gFZ81iroVW4t5Z3dTUCsYhWrWGNbKNVexAewjwRQ1LZyK75bLpX6QAQVFayogDyUVwQJIe/s7j/9zmyy2TzACk",
+  "fontsCheck": true,
+  "vendor": "Google Inc.",
+  "webdriver": false,
+  "maxTouch": 0
+}

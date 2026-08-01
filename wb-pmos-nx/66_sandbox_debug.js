@@ -17,12 +17,13 @@ async function main() {
 
   const sandboxKeygen = require(path.join(ROOT, 'output/keygen/sandbox_keygen.js'));
   // 用 runSandbox 拿 captured（含 missing/errors）
-  const r = sandboxKeygen.runSandbox({ nsd, cd }, {
+  const r = await sandboxKeygen.runSandbox({ nsd, cd }, {
     outerJsCode: fs.readFileSync(path.join(ROOT, 'example/pmos.nx.sgcc.com.cn/c9qYRt1w5yKr/83bw0aTvAW7K.2437991.js'), 'utf8'),
     target: 'https://pmos.nx.sgcc.com.cn:10443/',
     ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     timeout: 10000,
     debugLog: true,
+    waitMs: 20000,
   });
   console.log('cookie:', r.pCookie ? r.pCookie.substring(0, 30) : 'null');
   console.log('dynCodeLen:', r.dynCodeLen);
