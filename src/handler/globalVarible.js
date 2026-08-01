@@ -31,6 +31,10 @@ class GlobalVarible {
   }
   get basestr() {
     // 来自cp2，用于 cd 解码（86 字符）—— cookie 编码使用单独的 64 字符集（通过 adapt.basestr 配置）
+    // ★ nx 站点 cd 解码用含 '-' 的 86 basestr（adapt.cdBasestr 覆盖），xj 用默认含 '.' 的
+    try {
+      if (cache.config && cache.config.adapt && cache.config.adapt.cdBasestr) return cache.config.adapt.cdBasestr;
+    } catch (e) {}
     return 'qrcklmDoExthWJiHAp1sVYKU3RFMQw8IGfPO92bvLNj.7zXBaSnu0TC6gy_4Ze5d{}|~ !#$%()*+,-;=?@[]^';
   }
   get alphabet() {

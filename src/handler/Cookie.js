@@ -46,6 +46,9 @@ module.exports = class {
       gv.config.adapt?.hasDebug ? basearrEncrypt.length >> 8 & 255 | 128 : undefined,
       basearrEncrypt,
     )
+    if (process.env.DEBUG_COOKIE) {
+      console.log('[Cookie] runTime=' + this.config.runTime, 'random=' + this.config.random, 'keys16=' + (gv.keys[16] || []).slice(0, 4).map(b => b.toString(16).padStart(2, '0')).join(' '), 'keys2=' + (gv.keys[2] || []).slice(0, 4).map(b => b.toString(16).padStart(2, '0')).join(' '), 'basearr=' + basearr.length, 'nextarr=' + nextarr.length);
+    }
     return (gv.config.adapt?.cookiePrefix || '0') + numarr2string(
       encryptMode1(
         [

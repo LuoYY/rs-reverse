@@ -5,10 +5,75 @@ const monitor = require('@utils/monitor');
 const logger = require('@utils/logger');
 const custask = require('../task');
 const error = require('@utils/error');
+const parser = require('@babel/parser');
+
+// ★ rebuiltCode 环境提取缓存：
+//   1. IIFE 主体顶层的所有函数声明（跳过顶层 return/while 死循环）
+//   2. 主 dispatcher（4 参数 + while 循环）while 前的 var 声明 + 初始化赋值（操作码环境：栈/寄存器初始化）
+let __rebuiltFuncCache = null;
+function getRebuiltFuncs(rebuilt, mainParams) {
+  if (__rebuiltFuncCache && __rebuiltFuncCache.code === rebuilt) return __rebuiltFuncCache.defs;
+  try {
+    const ast = parser.parse(rebuilt, { sourceType: 'script', allowReturnOutsideFunction: true });
+    const defs = [];
+    let env = '';
+    const expr = ast.program.body[0];
+    if (expr && expr.type === 'ExpressionStatement' && expr.expression.type === 'CallExpression') {
+      const body = expr.expression.callee.body.body;
+      body.forEach(n => {
+        if (n.type === 'FunctionDeclaration' && n.id && n.id.name) {
+          defs.push(rebuilt.substring(n.start, n.end));
+        }
+      });
+    }
+    // 主 dispatcher：参数名匹配 codemap.params 且含 while 循环
+    // → 提取 while 前的 var 声明 + 赋值（操作码环境初始化：栈/寄存器）
+    const paramSet = Array.isArray(mainParams) && mainParams.length ? new Set(mainParams) : null;
+    (function findMainDispatcher(node) {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'FunctionDeclaration' && node.params && node.body && node.body.body) {
+        const pNames = node.params.map(p => p.name);
+        const match = paramSet ? pNames.length === paramSet.size && pNames.every(p => paramSet.has(p)) : false;
+        if (match) {
+          let hasWhile = false;
+          (function chk(n2) {
+            if (!n2 || typeof n2 !== 'object') return;
+            if (n2.type === 'WhileStatement') hasWhile = true;
+            for (const k of Object.keys(n2)) { const v = n2[k]; if (Array.isArray(v)) v.forEach(chk); else if (v && typeof v.type === 'string') chk(v); }
+          })(node);
+          if (hasWhile) {
+            for (const stmt of node.body.body) {
+              if (stmt.type === 'WhileStatement') break;
+              if (stmt.type === 'VariableDeclaration' || stmt.type === 'ExpressionStatement') {
+                env += rebuilt.substring(stmt.start, stmt.end) + '\n';
+              }
+            }
+          }
+        }
+      }
+      for (const k of Object.keys(node)) { const v = node[k]; if (Array.isArray(v)) v.forEach(findMainDispatcher); else if (v && typeof v.type === 'string') findMainDispatcher(v); }
+    })(ast.program);
+    const result = defs.join('\n') + '\n' + env;
+    __rebuiltFuncCache = { code: rebuilt, defs: result };
+    return result;
+  } catch (e) {
+    return null;
+  }
+}
 
 function runTaskByUid(uid, ...params) {
   const tasks = gv.r2mka(uid);
+  if (process.env.DEBUG_RUNTASK) console.log(`[runTaskByUid] ${uid} →`, tasks ? 'len=' + tasks.length : 'undefined', '类型:', typeof tasks);
   if (!tasks || tasks.length !== 1) throw new Error(`当前任务${uid}未找到或者不唯一，请检查！`);
+  if (process.env.DEBUG_RUNTASK) {
+    console.log(`[runTaskByUid] ${uid} 执行 task.key=${tasks[0].key} taskarr=${JSON.stringify(tasks[0].taskarr)}`);
+    const cm2 = gv.config.codemap;
+    const ta2 = tasks[0].taskarr || [];
+    console.log(`[runTaskByUid] ${uid} taskarr 长度 ${ta2.length}，完整操作码:`);
+    ta2.forEach((idx2, i) => {
+      console.log(`  task[${i}]=${idx2}: ${typeof cm2[idx2] === 'string' ? cm2[idx2].substring(0, 200).replace(/\n/g, ' ') : '非字符串'}`);
+    });
+  }
   return runTask(tasks.pop(), ...params);
 }
 
@@ -127,18 +192,20 @@ function dynamicExec(taskItem, start = 0, args = [], loop_res = {}, global_res =
     ...codemap.varible,
   ].join(', ');
   // 注入重建代码完整环境（nx 等站点任务代码引用 IIFE 闭包变量/函数）
-  // 重建代码 = (function(A,B){ <主体> })(scj, aebi)，提取 <主体> eval 到当前作用域
+  // 重建代码 = (function(A,B){ <主体> })(scj, aebi)，<主体> 顶层是函数声明（不能整体 eval——含顶层 return/while 死循环）
+  // ★ 用 Babel 提取 <主体> 顶层的所有函数声明 eval 到当前作用域（跳过顶层 return/while）
+  // ★ 每次 dynamicExec 调用都注入：函数声明绑定在调用作用域，一次性注入会导致后续调用缺函数
+  // ★ 必须用 _getAttr：GlobalVarible 无 rebuiltCode getter，gv.rebuiltCode 恒为 undefined
   try {
-    const rebuilt = gv.rebuiltCode || '';
-    if (rebuilt && !rebuilt.includes('__rebuiltInjected')) {
-      const bodyStart = rebuilt.indexOf('{');
-      const bodyEnd = rebuilt.lastIndexOf('})(');
-      if (bodyStart > 0 && bodyEnd > bodyStart) {
-        const body = rebuilt.substring(bodyStart + 1, bodyEnd);
-        if (body.length > 1000) {
-          eval(body);
-          gv._setAttr('rebuiltCode', rebuilt + '\n// __rebuiltInjected');
-        }
+    const rebuilt = gv._getAttr('rebuiltCode') || '';
+    if (rebuilt && rebuilt.length > 1000) {
+      const cm = gv.config.codemap;
+      const funcs = getRebuiltFuncs(rebuilt, cm && cm.params);
+      if (funcs && funcs.length > 0) {
+        eval(funcs);
+        if (process.env.DEBUG_INJECT) console.log(`[注入] 环境 ${funcs.length} 字符`);
+      } else if (process.env.DEBUG_INJECT) {
+        console.log(`[注入] 函数提取失败 rebuilt=${rebuilt.length}`);
       }
     }
   } catch (e) {
@@ -151,9 +218,11 @@ function dynamicExec(taskItem, start = 0, args = [], loop_res = {}, global_res =
       logger.error(`codemap中下标${task[t_cursor]}不存在值!`)
     } else {
       logger.debug(`(${key}, ${idx}, ${task[t_cursor]})执行代码：${codemap[task[t_cursor]]}`);
+      if (process.env.DEBUG_TASK) console.log(`[TASK ${key}#${idx}] code: ${(codemap[task[t_cursor]] || '').substring(0, 300)}`);
       eval(`${codemap.forcur}=t_cursor`);
       codemap[task[t_cursor]].split(';').map(it => it.trim()).forEach(c => {
         try {
+          if (process.env.DEBUG_TASK) console.log(`[TASK exec] ${c.substring(0, 200)}`);
           eval(c);
         } catch(err) {
           logger.error(`代码: ${c} 执行失败，当前任务：${key}`)

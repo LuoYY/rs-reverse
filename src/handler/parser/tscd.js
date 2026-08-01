@@ -65,7 +65,12 @@ exports.init = function() {
   const start = 2;
   const end = (cdArr[0] << 8 | cdArr[1]) + start;
   const one = parse(cdArr.slice(start, end));
-  const offset = runTaskByUid('U14124020', [], getTaskarr(one, one[3])); // 获取解密用偏移值数组
+  // nx 兼容：优先使用外部推导的 offset（K16 锚扫描），避免 runTask（codemap 对 nx 不适配）
+  // 无 dynamicTaskOffset 时走原逻辑（xj 等站点）
+  let offset = gv._getAttr('dynamicTaskOffset');
+  if (!offset || !Array.isArray(offset) || offset.length !== 8) {
+    offset = runTaskByUid('U14124020', [], getTaskarr(one, one[3])); // 获取解密用偏移值数组
+  }
   gv._setAttr('dynamicTaskOffset', offset);
   gv._setAttr('dynamicTask', getTaskarr(one, one[3]));
   const ans = cdArr.slice(end).map((item, idx) => {
