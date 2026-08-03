@@ -1,0 +1,16 @@
+const path = require('path');
+const ROOT = path.join(__dirname, '..');
+require('module-alias')(path.dirname(require(path.join(ROOT, 'utils/paths.js')).package));
+require('@src/handler/parser/constData').init();
+const { encryptMode1 } = require('@src/handler/parser/common/modeEncrypt');
+const numarrAddTime = require('@src/handler/parser/common/numarrAddTime');
+const numarr2string = require('@src/handler/parser/common/numarr2string');
+const K16 = [215, 90, 92, 114, 190, 161, 210, 59, 55, 192, 204, 2, 209, 95, 17, 173];
+const arr = numarrAddTime([...K16], 0, 1/256)[0];
+const input = new Array(225).fill(0);
+const out = encryptMode1(input, arr, 1);
+console.log('out len:', out.length);
+const bs = 'qrcklmDoExthWJiHAp1sVYKU3RFMQw8IGfPO92bvLNj-7zXBaSnu0TC6gy_4Ze5d{';
+const str = numarr2string(out, bs.split(''));
+console.log('str len:', str.length);
+console.log('cookie len:', ('a' + str).length);

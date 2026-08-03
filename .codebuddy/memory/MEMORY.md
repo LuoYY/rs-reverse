@@ -3,9 +3,11 @@
 ## 项目
 rs-reverse（瑞数 VMP 逆向工具）的 fork 工作区，目标适配 pmos.xj.sgcc.com.cn（443 与 :20080 两部署）。
 
-## 用户要求
+## 用户要求（硬约束）
+- **必须纯算法完成 nx 全链路**（cookie + query + basearr 动态段）——**不接受任何非纯算法方案**（不接受浏览器辅助采集 keys2/basearr、不接受 CDP、不接受 patchright 参与生成链路）。浏览器仅用于**验证/分析**，生成必须纯 Node/纯 Go 跑外层 VM。
 - **不接受 CDP 代理方案**（pmos_xj_post_client.js），不要在任何回复中提及或推荐
 - 目标：纯算法生成 query 参数，不依赖浏览器
+- **xj 也是一步步探索出来的**（wb-dsv4flash / go-impl 各种 md 文档）：学习 xj 纯算法路径（fetchChallenge 纯 HTTP + RunCoderFull 纯 Go 跑外层 VM 生成 keys/basearr + generateCookie + GenQuery），不能降低要求
 
 ## 核心方法论（瑞数 VMP 纯算法）
 - cookie 生成链路：拉 412 挑战页解析 $_ts.nsd/cd → 沙箱执行外层 VM 提取动态代码/cp[3] → cp3Override 注入管线 Coder → cd解密→keys→basearr→Cookie 加密 → O+P 重放

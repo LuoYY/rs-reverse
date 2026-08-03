@@ -12,7 +12,8 @@ const fs = require('fs');
 const path = require('path');
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 process.env.OPENSSL_LEGACY_RENEGOTIATION = '1';
-const https = require('https');
+const http = require('http');
+const tls = require('tls');
 const { JSDOM } = require('jsdom');
 
 const ROOT = path.join(__dirname, '..');
@@ -20,15 +21,47 @@ const OUT = path.join(__dirname, 'captures');
 const TARGET = 'https://pmos.nx.sgcc.com.cn:10443/';
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 const OUTER_JS = path.join(ROOT, 'example/pmos.nx.sgcc.com.cn/c9qYRt1w5yKr/83bw0aTvAW7K.2437991.js');
+const PROXY_URL = new URL('http://74940609:aFmWc5Fs@36.134.44.6:2018');
+const PROXY_AUTH = 'Basic ' + Buffer.from(PROXY_URL.username + ':' + PROXY_URL.password).toString('base64');
 
 function httpGet(url, cookie, timeout = 60000) {
   return new Promise(r => {
+    const u = new URL(url);
     const headers = { 'User-Agent': UA, 'Accept': '*/*' };
     if (cookie) headers['Cookie'] = cookie;
-    const req = https.get(url, { rejectUnauthorized: false, headers }, res => {
-      let b = ''; res.on('data', c => b += c); res.on('end', () => r({ status: res.statusCode, body: b, headers: res.headers }));
-    }).on('error', (e) => r({ status: 'ERR', body: '', headers: {}, error: e.message }));
-    req.setTimeout(timeout, () => { req.destroy(); r({ status: 'TIMEOUT', body: '', headers: {} }); });
+    const connectReq = http.request({
+      host: PROXY_URL.hostname, port: +PROXY_URL.port, method: 'CONNECT',
+      path: `${u.hostname}:${u.port || 443}`,
+      headers: { 'Proxy-Authorization': PROXY_AUTH, Host: `${u.hostname}:${u.port || 443}` },
+      timeout,
+    });
+    connectReq.on('connect', (res, socket) => {
+      if (res.statusCode !== 200) { socket.destroy(); r({ status: 'ERR', body: '', headers: {} }); return; }
+      const tlsSock = tls.connect({ socket, servername: u.hostname, rejectUnauthorized: false }, () => {
+        const pathStr = u.pathname + u.search;
+        const head = `GET ${pathStr} HTTP/1.1\r\nHost: ${u.hostname}:${u.port || 443}\r\nUser-Agent: ${UA}\r\nAccept: */*\r\n`;
+        const hdrs = Object.entries(headers).filter(([k]) => k !== 'User-Agent' && k !== 'Accept').map(([k, v]) => `${k}: ${v}`).join('\r\n');
+        tlsSock.write(head + (hdrs ? hdrs + '\r\n' : '') + 'Connection: close\r\n\r\n');
+      });
+      let body = '';
+      let raw = '';
+      tlsSock.on('data', d => raw += d);
+      tlsSock.on('end', () => {
+        const headEnd = raw.indexOf('\r\n\r\n');
+        if (headEnd >= 0) {
+          const resHead = raw.substring(0, headEnd);
+          body = raw.substring(headEnd + 4);
+          const status = parseInt((resHead.split(' ')[1] || '').trim());
+          const setCookies = [];
+          resHead.split('\r\n').forEach(l => { if (/^set-cookie:/i.test(l)) setCookies.push(l.substring(11)); });
+          r({ status, body, headers: { 'set-cookie': setCookies } });
+        } else r({ status: 'ERR', body: '', headers: {} });
+      });
+      tlsSock.on('error', e => r({ status: 'ERR', body: '', headers: {}, error: e.message }));
+    });
+    connectReq.on('error', e => r({ status: 'ERR', body: '', headers: {}, error: e.message }));
+    connectReq.on('timeout', () => { connectReq.destroy(); r({ status: 'TIMEOUT', body: '', headers: {} }); });
+    connectReq.end();
   });
 }
 
