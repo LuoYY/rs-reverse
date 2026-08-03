@@ -1,0 +1,25 @@
+{
+  "name": "nx-basearr",
+  "mainConversationId": "1bb233cb519a47b68dbc832a868c12b5",
+  "workspacePath": "/Users/luoyy/work/github/GitHub/rs-reverse_glm",
+  "createdAt": "2026-08-03T07:40:39.318Z",
+  "options": {
+    "workspacePath": "/Users/luoyy/work/github/GitHub/rs-reverse_glm",
+    "isAutoTeam": false
+  },
+  "isAutoTeam": false,
+  "members": [
+    {
+      "memberId": "agentA-env@nx-basearr",
+      "name": "agentA-env",
+      "role": "A环境补全生成basearr",
+      "sessionId": "1fbbf4c0aeb744a9b367f9d968c6248f"
+    },
+    {
+      "memberId": "agentB-formula@nx-basearr",
+      "name": "agentB-formula",
+      "role": "B公式反推basearr",
+      "sessionId": "3de06e2e2e64484a87ea88b1a0f13af9"
+    }
+  ]
+}
