@@ -218,6 +218,12 @@ func main() {
 		return
 	}
 
+	// Mode: nx Coder test (./pmos_go nx <nsd> <cd>)
+	if len(os.Args) > 1 && os.Args[1] == "nx" {
+		mainNxTest(os.Args[2:])
+		return
+	}
+
 	fmt.Println("=== Go 纯算法 Cookie 生成可行性测试 ===")
 
 	ok, bad := 0, 0

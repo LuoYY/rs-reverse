@@ -517,6 +517,9 @@ func (ctx *execContext) execOpcode(opcode int, code string, taskarr []int) error
 		ctx.stack[len(ctx.stack)-1] = append(arr, val)
 
 	case 68: // call method with 3 args from stack
+		if len(ctx.stack) < 3 {
+			return fmt.Errorf("op68 stack underflow: stack=%d", len(ctx.stack))
+		}
 		ctx.stack = ctx.stack[:len(ctx.stack)-3]
 		argIdx := len(ctx.stack)
 		fn := ctx.getCurAsFunc()
