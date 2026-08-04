@@ -13,6 +13,17 @@
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 process.env.NODE_OPTIONS = '--dns-result-order=ipv4first';
 
+// 进程级 watchdog：总执行超时强制退出（防 interval 死循环/同步卡死）
+const WATCHDOG_MS = parseInt(process.env.VM_TIMEOUT || '90000', 10);
+const _t0 = Date.now();
+const _watchdog = setInterval(() => {
+  if (Date.now() - _t0 > WATCHDOG_MS) {
+    console.error(`\n[WATCHDOG] 总执行超过 ${WATCHDOG_MS}ms，强制退出（疑似死循环）`);
+    try { window && window.close && window.close(); } catch (e) {}
+    process.exit(124);
+  }
+}, 2000);
+
 const fs = require('fs'), path = require('path');
 const ROOT = __dirname;
 const TARGET = 'https://pmos.xj.sgcc.com.cn:20080/';
