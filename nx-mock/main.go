@@ -140,7 +140,7 @@ func serveJS(w http.ResponseWriter, path string) {
 
 func main() {
 	dir := flag.String("dir", ".", "静态文件目录（含 412.raw / 200.raw / c9qYRt1w5yKr/）")
-	port := flag.String("port", "8998", "监听端口")
+	port := flag.String("port", "8997", "监听端口")
 	flag.Parse()
 
 	file412 := filepath.Join(*dir, "412.raw")
@@ -171,9 +171,8 @@ func main() {
 			switch {
 			case hasO && hasP:
 				serveRaw(w, file200)
-			case hasO:
-				serveJS(w, jsChallenge)
 			default:
+				// 无 cookie / 仅带 O（未完成挑战）都返回 412 挑战页 html
 				serveRaw(w, file412)
 			}
 		default:
