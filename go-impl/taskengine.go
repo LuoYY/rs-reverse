@@ -520,8 +520,7 @@ func (ctx *execContext) execOpcode(opcode int, code string, taskarr []int) error
 		if len(ctx.stack) < 3 {
 			return fmt.Errorf("op68 stack underflow: stack=%d", len(ctx.stack))
 		}
-		ctx.stack = ctx.stack[:len(ctx.stack)-3]
-		argIdx := len(ctx.stack)
+		argIdx := len(ctx.stack) - 3
 		fn := ctx.getCurAsFunc()
 		ctx.push(callFunc3(fn, ctx.stack[argIdx], ctx.stack[argIdx+1], ctx.stack[argIdx+2]))
 
