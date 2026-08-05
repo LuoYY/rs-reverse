@@ -103,3 +103,33 @@ keys17 = 16 字节（内层 AES 密钥）
 | codemap | 115 opcode | 136 opcode |
 | r2mka UID | U14124020 | U14124020（相同） |
 | immucfg | globaltext1/2, cp0, cp2 | 已提取（cp0=45115 一致） |
+| **cp2 表** | 240 元素（旧） | **423 元素**（parse 解密后 = `_$k0`，含 -0.01/2654435769/4294967295 等） |
+
+## ★★★ nx offset 攻坚结论（08-04 晚11）★★★
+
+### cp2 正确提取（重大修复）
+`parse(coder.$_ts.cp[2]).map(Number)` = **423 元素大数表**，与 `_$k0` 完全一致：
+```
+[59,100,16,240,58,128,4,41,31,255,... 2654435769, -0.01, 4294967295, 268435456, 16383 ...]
+```
+（旧 `nx_cp2.json` 是 1954 ASCII 码，**错误**——TaskEngine 的 `global_res` 需 423 表）
+
+### sdenv 环境验证
+- `$_ts` 只有 `l__`（trampoline `_$nD`: `[256];push(arguments);return _$iJ(...)`）
+- keys 纯 f(nsd,cd)：k16=`[215,90,...]`、k17=`[121,52,...]`、k2=48B（每次一致）
+- keys 在闭包内不暴露（`$_ts` 无 keys 数组）
+
+### nx cd→keys 与 xj 结构差异（决定性）
+- **xj**：`[numKeys=45][gap0=2][54,52][gap1=2][54,52]...`，bruteForce 的 keys1[1]=52 验证通过
+- **nx**：keys1[1] 每次不同（197/238/52...），**keys[2] 在任何 pos/周期/numKeys 都不匹配 sdenv keys2**
+- 结论：**nx 的 keys 区结构 ≠ xj 的 [numKeys][gap][keys] 布局**，bruteForce 不适用
+
+### TaskEngine 状态
+- op68 栈越界已修复（不再 panic）
+- U14124020 仍返回 nil（opcode 34 return 未到达，commonFunc 时序问题——xj 也放弃）
+- **TaskEngine 不是 nx 正路**（同 xj）
+
+### nx 纯 Go 剩余工作
+1. **确定 nx keys 结构**：hook sdenv 外层 VM 的 keys 生成处（`_$c4`/`_$iJ` 主分发器）提取运行时 offset/keys 布局
+2. 或反编译 Coder 生成的 code（mainFnCode 490KB）找 keys 解析算法
+3. 之后：parseCdToKeys → buildBasearr（硬编码指纹）→ generateCookie → replay

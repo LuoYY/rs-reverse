@@ -1,0 +1,80 @@
+// ★ 决定性实验：base 模板跨会话复用性。
+// 用会话 A 的 base（模板） + 会话 B 的 O cookie/keys 重构 cookie → 打 API。
+// 若 200 → base 不绑定 cd/keys（只绑定环境指纹）→ 纯算法 = 固定模板 + [23:25]随机，直接可用！
+// 若 412 → base 绑定会话 → 需反推动态字段公式。
+const path = require('path');
+const fs = require('fs');
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+const ROOT = path.join(__dirname, '..', '..');
+require('module-alias')(path.dirname(require(path.join(ROOT, 'utils/paths.js')).package));
+require(path.join(ROOT, 'src/handler/parser/constData.js')).init();
+const parser = require(path.join(ROOT, 'src/handler/parser/index.js'));
+const nx = require('./nx_client');
+const NX_BS = 'qrcklmDoExthWJiHAp1sVYKU3RFMQw8IGfPO92bvLNj-7zXBaSnu0TC6gy_4Ze5d{}|~ !#$%()*+,.;=?@[]^';
+const K16 = [215, 90, 92, 114, 190, 161, 210, 59, 55, 192, 204, 2, 209, 95, 17, 173];
+function dB64(s) { const m = {}; for (let i = 0; i < 64; i++)m[NX_BS[i]] = i; const o = []; let q = 0; for (let g = 0; g < Math.floor(s.length / 4); g++) { const c0 = m[s[q]], c1 = m[s[q + 1]], c2 = m[s[q + 2]], c3 = m[s[q + 3]]; q += 4; if (c0 === undefined) return null; o.push((c0 << 2) | (c1 >> 4), ((c1 & 15) << 4) | (c2 >> 2), ((c2 & 3) << 6) | c3) } const r = s.length - q; if (r === 2) o.push((m[s[q]] << 2) | (m[s[q + 1]] >> 4)); else if (r === 3) o.push((m[s[q]] << 2) | (m[s[q + 1]] >> 4), ((m[s[q + 1]] & 15) << 4) | (m[s[q + 2]] >> 2)); return o }
+function getTree() { let a = []; for (let i = 1; i < 255; i++)a.push({ total: 1, idx: i }); a.push({ total: 6, idx: 255 }, { total: 45, idx: 0 }); function p(it) { for (let i = 0; i < a.length; i++) { if (it.total <= a[i].total) { a.splice(i, 0, it); return } } a.push(it) } while (a.length > 1) { const [o1, t2] = a.slice(0, 2); a = a.slice(2); p({ total: o1.total + t2.total, first: o1, second: t2 }) } return a[0] }
+function gEC(t, c = { key: 0, val: 0 }, arr = []) { if (t.idx === undefined) { gEC(t.first, { key: c.key << 1, val: c.val + 1 }, arr); gEC(t.second, { key: (c.key << 1) + 1, val: c.val + 1 }, arr) } else arr[t.idx] = c; return arr }
+const cfg = gEC(getTree()); const byLen = {}; let maxL = 0; for (let b = 0; b < 256; b++) { const c = cfg[b]; if (!c) continue; if (!byLen[c.val]) byLen[c.val] = {}; byLen[c.val][c.key] = b; if (c.val > maxL) maxL = c.val }
+function hdecRaw(enc) { const ans = []; let key = 0, val = 0; for (const byte of enc) { for (let b = 7; b >= 0; b--) { key = (key << 1) | ((byte >> b) & 1); val++; const m = byLen[val]; if (m && m[key] !== undefined) { ans.push(m[key]); key = 0; val = 0 } if (val > maxL) { key = 0; val = 0 } } } return ans }
+function henc(num) { const ans = []; let one = 0, two = 0; for (const b of num) { const c = cfg[b]; if (!c) continue; one = one << c.val | c.key; two += c.val; while (two >= 8) { ans.push(one >> two - 8); one &= ~(255 << two - 8); two -= 8 } } if (two > 0) ans.push(one << 8 - two | 0x68 >> two); return ans }
+function bestTrim(raw, huff) { const hh = huff.slice(0, huff.length - 1); for (let L = raw.length; L >= 1; L--) { const e = henc(raw.slice(0, L)); if (JSON.stringify(e.slice(0, e.length - 1)) === JSON.stringify(hh)) return raw.slice(0, L) } return raw }
+function buildCookie(base, keys2, keys17, r2mka, startT) {
+  const random = Math.random();
+  const basearrEncrypt = parser.encryptMode1(parser.xor(parser.numarrEncrypt(base), keys2, 16), parser.numarrAddTime([...keys17], r2mka, random)[0], 0);
+  const nextarr = [4, 8, ...parser.numToNumarr4(r2mka), ...parser.numToNumarr4(startT), 48, ...keys2, basearrEncrypt.length >> 8 & 255 | 128, basearrEncrypt.length & 255, ...basearrEncrypt];
+  return 'a' + parser.numarr2string(parser.encryptMode1([...parser.numToNumarr4(parser.uuid(nextarr)), ...nextarr], parser.numarrAddTime([...K16], r2mka, random)[0], 1, random), NX_BS.slice(0, 64).split(''));
+}
+
+(async () => {
+  console.log('[XT] === 跨会话 base 模板复用性测试 ===');
+  // 读会话 A 的 base（已采集样本）
+  const samples = JSON.parse(fs.readFileSync('/tmp/nx_base_segments.json', 'utf8'));
+  console.log('[XT] 已采集样本数:', samples.length);
+  // 会话 B（新 init）
+  const ctx = await nx.init({ timeout: 50000, log: () => {} });
+  const Pname = ctx.cookieP.split('=')[0];
+  const API = '/px-common-authcenter/auth/v2/captcha/get';
+  const { httpGet } = require('./proxy_http');
+  const r2mka = Math.floor(Date.now() / 1000);
+  const startT = r2mka + 1;
+  const testOne = async (name, base, k2, k17) => {
+    try {
+      const pval = buildCookie(base, k2, k17, r2mka, startT);
+      const cf = ctx.cookieO + '; ' + Pname + '=' + pval;
+      const q = nx.genQuery(API, k2, k17);
+      const rr = await httpGet(nx.TARGET + API, { userAgent: nx.UA, timeout: 20000, headers: { Cookie: cf, Accept: '*/*', [nx.QUERY_PARAM]: q } });
+      console.log('[XT] ' + name + ' → ' + rr.status + (rr.error ? ' ' + rr.error : ''));
+      return rr.status;
+    } catch (e) { console.log('[XT] ' + name + ' → ERR ' + e.message.slice(0, 50)); return 'ERR'; }
+  };
+  // 基准：会话 B 自己的 base（需解出）
+  const Pval = ctx.cookieP.split('=')[1];
+  const pBytes = dB64(Pval.slice(1));
+  const k16a = parser.numarrAddTime([...K16], 0, 1 / 256)[0];
+  const dec = parser.encryptMode2([...pBytes], k16a, 1);
+  const na = dec.slice(4);
+  const cookieK2 = na.slice(11, 59);
+  const beLen = (na[59] & 0x7f) << 8 | na[60];
+  const be = na.slice(61, 61 + beLen);
+  const k17a = parser.numarrAddTime([...ctx.keys17], 0, 1 / 256)[0];
+  const tmp = parser.encryptMode2([...be], k17a, 0);
+  const huff = tmp.map((v, i) => i < 16 ? (v ^ cookieK2[i]) : v);
+  const baseB = bestTrim(hdecRaw(huff), huff);
+  console.log('[XT] 会话 B base.len=' + baseB.length + ' 头=' + baseB.slice(0, 8).join(','));
+  await testOne('本会话 base(B)', baseB, ctx.keys2, ctx.keys17);
+  await new Promise(r => setTimeout(r, 1500));
+  // 跨会话：会话 A 的 base（样本0）+ 会话 B 的 keys/O
+  for (let i = 0; i < samples.length; i++) {
+    const s = samples[i];
+    console.log('[XT] 样本#' + i + ' base.len=' + s.base.length + ' 头=' + s.base.slice(0, 8).join(','));
+    // 方式1：样本A base + 会话B keys
+    await testOne('样本#' + i + ' base + B keys', s.base, ctx.keys2, ctx.keys17);
+    await new Promise(r => setTimeout(r, 1500));
+    // 方式2：样本A base + 样本A keys（但用 B 的 O cookie）
+    // 注：样本A 没存 O cookie，无法用 A 的 O。用 B 的 O + A 的 keys2/keys17
+    await testOne('样本#' + i + ' base + 样本#' + i + ' keys', s.base, s.keys2, s.keys17);
+    await new Promise(r => setTimeout(r, 1500));
+  }
+  process.exit(0);
+})().catch(e => { console.error('[XT] FATAL:', e && e.message); process.exit(1); });
