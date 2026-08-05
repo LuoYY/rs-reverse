@@ -1,7 +1,7 @@
 /**
  * 812_dataset_build.js 整理 36 样本标准化验证数据集
  * 统一格式: {nsd, src, cd, cap, base, keys2, block, pair22, env68, env73}
- * 输出 /tmp/nx_vm_verify_dataset.json
+ * 输出 wb-pmos-nx/tmp_b_files/nx_vm_verify_dataset.json
  */
 const fs = require('fs');
 
@@ -47,7 +47,7 @@ function findBlock(base) {
 const out = [];
 
 // 1. 实时 8 样本（含 cd/cap/base/keys2）
-const live = JSON.parse(fs.readFileSync('/tmp/728_B_all_forms.json', 'utf8'));
+const live = JSON.parse(fs.readFileSync('wb-pmos-nx/tmp_b_files/728_B_all_forms.json', 'utf8'));
 for (const s of live) {
   out.push({
     nsd: s.nsd, src: 'live', group: s.nsd, cd: s.cd, cap: s.cap, base: s.base179, keys2: s.keys2,
@@ -57,7 +57,7 @@ for (const s of live) {
 }
 
 // 2. IO 对 16（8 实时重叠去重 + 8 triple）
-const io = JSON.parse(fs.readFileSync('/tmp/nx_io_pairs.json', 'utf8'));
+const io = JSON.parse(fs.readFileSync('wb-pmos-nx/tmp_b_files/nx_io_pairs.json', 'utf8'));
 const liveNsds = new Set(live.map(s => s.nsd));
 for (const s of io) {
   if (liveNsds.has(s.nsd)) continue;
@@ -69,7 +69,7 @@ for (const s of io) {
 }
 
 // 3. A236 12 样本（同 nsd 组）
-const a236 = JSON.parse(fs.readFileSync('/tmp/nx_A236_blocks.json', 'utf8'));
+const a236 = JSON.parse(fs.readFileSync('wb-pmos-nx/tmp_b_files/nx_A236_blocks.json', 'utf8'));
 const a236arr = Array.isArray(a236) ? a236 : Object.values(a236);
 for (const s of a236arr) {
   out.push({
@@ -79,7 +79,7 @@ for (const s of a236arr) {
   });
 }
 
-fs.writeFileSync('/tmp/nx_vm_verify_dataset.json', JSON.stringify(out, null, 1));
+fs.writeFileSync('wb-pmos-nx/tmp_b_files/nx_vm_verify_dataset.json', JSON.stringify(out, null, 1));
 console.log('总样本:', out.length);
 console.log('\n=== 样本清单 ===');
 for (const s of out) {

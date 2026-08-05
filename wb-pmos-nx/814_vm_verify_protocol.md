@@ -4,11 +4,11 @@
 VM 执行器输入 cap 后输出 base，与 36 样本验证集对比，确认模拟正确性。
 
 ## 数据资产
-- **验证集**: `/tmp/nx_vm_verify_dataset.json`（36 样本，统一格式）
+- **验证集**: `wb-pmos-nx/tmp_b_files/nx_vm_verify_dataset.json`（36 样本，统一格式）
   - `{nsd, src, cd, cap, base, keys2, block, pair22, env68, env73}`
   - 8 实时样本含完整 `cd/cap/base/keys2`（最可靠，**优先用这批验证**）
   - 12 A236 样本无 cd/cap（仅 base+env，用于同环境变体观察）
-- **IO 对**: `/tmp/nx_io_pairs.json`（16 样本 cap+base）
+- **IO 对**: `wb-pmos-nx/tmp_b_files/nx_io_pairs.json`（16 样本 cap+base）
 - **采集脚本**: `wb-pmos-nx/728_B_capture_all.js`（可采集新的 cd/cap/base/keys2）
 
 ## 验证流程（三阶段）

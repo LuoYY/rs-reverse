@@ -4,10 +4,10 @@
  * 恒定 / f(nsd,cd) / 时间相关 / 校验和候选
  */
 const fs = require('fs');
-const live = JSON.parse(fs.readFileSync('/tmp/728_B_all_forms.json', 'utf8'));
-const pairs = JSON.parse(fs.readFileSync('/tmp/nx_cd_base_pairs.json', 'utf8')).samples;
-const trip = JSON.parse(fs.readFileSync('/tmp/agentB/nx_triple_dataset.json', 'utf8')).samples;
-const a236 = JSON.parse(fs.readFileSync('/tmp/nx_A236_blocks.json', 'utf8'));
+const live = JSON.parse(fs.readFileSync('wb-pmos-nx/tmp_b_files/728_B_all_forms.json', 'utf8'));
+const pairs = JSON.parse(fs.readFileSync('wb-pmos-nx/tmp_b_files/nx_cd_base_pairs.json', 'utf8')).samples;
+const trip = JSON.parse(fs.readFileSync('wb-pmos-nx/tmp_b_files/nx_triple_dataset.json', 'utf8')).samples;
+const a236 = JSON.parse(fs.readFileSync('wb-pmos-nx/tmp_b_files/nx_A236_blocks.json', 'utf8'));
 const a236arr = Array.isArray(a236) ? a236 : Object.values(a236);
 
 const samples = [];

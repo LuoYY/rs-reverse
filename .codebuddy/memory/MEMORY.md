@@ -8,6 +8,7 @@ rs-reverse（瑞数 VMP 逆向工具）的 fork 工作区，目标适配 pmos.xj
 - **不接受 CDP 代理方案**（pmos_xj_post_client.js），不要在任何回复中提及或推荐
 - 目标：纯算法生成 query 参数，不依赖浏览器
 - **xj 也是一步步探索出来的**（wb-dsv4flash / go-impl 各种 md 文档）：学习 xj 纯算法路径（fetchChallenge 纯 HTTP + RunCoderFull 纯 Go 跑外层 VM 生成 keys/basearr + generateCookie + GenQuery），不能降低要求
+- **禁止在 /tmp/ 下创建任何文件**（临时产物/脚本/数据一律禁止，/tmp 会被系统清理导致数据丢失）；必须在项目文件夹内建立 `tmp/` 或 `tmp_*_files/`（或 `anchor_analysis_files/` 等）存放，且**不得删除临时文件**（分析资产需长期保留）。项目级规范见根目录 `agents.md`。历史 /tmp nx 数据已迁移至 `wb-pmos-nx/anchor_analysis_files/`
 
 ## 核心方法论（瑞数 VMP 纯算法）
 - cookie 生成链路：拉 412 挑战页解析 $_ts.nsd/cd → 沙箱执行外层 VM 提取动态代码/cp[3] → cp3Override 注入管线 Coder → cd解密→keys→basearr→Cookie 加密 → O+P 重放

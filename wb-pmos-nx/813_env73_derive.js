@@ -2,8 +2,8 @@
  * 813_env73_derive.js 分析 [68:73] 与 cd/cap 的关系（模板库可行性）
  */
 const fs = require('fs');
-const live = JSON.parse(fs.readFileSync('/tmp/728_B_all_forms.json', 'utf8'));
-const trip = JSON.parse(fs.readFileSync('/tmp/agentB/nx_triple_dataset.json', 'utf8')).samples;
+const live = JSON.parse(fs.readFileSync('wb-pmos-nx/tmp_b_files/728_B_all_forms.json', 'utf8'));
+const trip = JSON.parse(fs.readFileSync('wb-pmos-nx/tmp_b_files/nx_triple_dataset.json', 'utf8')).samples;
 
 const NX_BS = 'qrcklmDoExthWJiHAp1sVYKU3RFMQw8IGfPO92bvLNj-7zXBaSnu0TC6gy_4Ze5d{}|~ !#$%()*+,.;=?@[]^';
 function decodeB86(str) {

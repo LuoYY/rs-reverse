@@ -65,15 +65,19 @@
 
 **卡点**：cd 绑定段 41B（会话段+env73+变体区）是内层 VM 加密 cap 的产物，公式反推已穷尽（XOR/哈希/切片/统计全排除）。纯算法最终依赖 VM 模拟（新 agent 任务）。
 
-## 五、验证数据
-- `/tmp/nx_vm_verify_dataset.json`（36 样本统一格式）
-- `/tmp/nx_io_pairs.json`（16 IO 对）
+## 五、验证数据（项目内路径，禁止 /tmp/）
+- `wb-pmos-nx/tmp_b_files/nx_vm_verify_dataset.json`（36 样本统一格式）
+- `wb-pmos-nx/tmp_b_files/nx_io_pairs.json`（16 IO 对）
+- `wb-pmos-nx/tmp_b_files/728_B_all_forms.json`（8 实时四元组）
+- `wb-pmos-nx/tmp_b_files/nx_cd_base_pairs.json`（10 pairs）
+- `wb-pmos-nx/tmp_b_files/nx_triple_dataset.json`（8 triple）
+- `wb-pmos-nx/tmp_b_files/nx_A236_blocks.json`（12 A236 同环境）
 - 采集脚本 `wb-pmos-nx/728_B_capture_all.js`
 - 验证协议 `wb-pmos-nx/814_vm_verify_protocol.md`
 
 ## 六、硬编码数据表（供 Go 端内嵌）
 
-**文件**: `/tmp/nx_hardcode_tables.json`（817_hardcode_tables.js 生成）
+**文件**: `wb-pmos-nx/tmp_b_files/nx_hardcode_tables.json`（817_hardcode_tables.js 生成）
 
 ```
 {

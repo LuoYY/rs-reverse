@@ -1,6 +1,6 @@
 /**
  * 817_hardcode_tables.js 整理硬编码数据表（供 Go 端内嵌）
- * 输出 /tmp/nx_hardcode_tables.json:
+ * 输出 wb-pmos-nx/tmp_b_files/nx_hardcode_tables.json:
  * - fixedHead [0:22]
  * - fixedTail [137:]（尾部对齐 33B）
  * - fingerprintTemplates [29:68] 13 种
@@ -8,10 +8,10 @@
  * - bitsConstraint 说明
  */
 const fs = require('fs');
-const live = JSON.parse(fs.readFileSync('/tmp/728_B_all_forms.json', 'utf8'));
-const pairs = JSON.parse(fs.readFileSync('/tmp/nx_cd_base_pairs.json', 'utf8')).samples;
-const trip = JSON.parse(fs.readFileSync('/tmp/agentB/nx_triple_dataset.json', 'utf8')).samples;
-const a236 = JSON.parse(fs.readFileSync('/tmp/nx_A236_blocks.json', 'utf8'));
+const live = JSON.parse(fs.readFileSync('wb-pmos-nx/tmp_b_files/728_B_all_forms.json', 'utf8'));
+const pairs = JSON.parse(fs.readFileSync('wb-pmos-nx/tmp_b_files/nx_cd_base_pairs.json', 'utf8')).samples;
+const trip = JSON.parse(fs.readFileSync('wb-pmos-nx/tmp_b_files/nx_triple_dataset.json', 'utf8')).samples;
+const a236 = JSON.parse(fs.readFileSync('wb-pmos-nx/tmp_b_files/nx_A236_blocks.json', 'utf8'));
 const a236arr = Array.isArray(a236) ? a236 : Object.values(a236);
 
 const samples = [];
@@ -107,8 +107,8 @@ const tables = {
     huffLenMap: lenMap,
   },
 };
-fs.writeFileSync('/tmp/nx_hardcode_tables.json', JSON.stringify(tables, null, 1));
-console.log('\n已保存 /tmp/nx_hardcode_tables.json');
+fs.writeFileSync('wb-pmos-nx/tmp_b_files/nx_hardcode_tables.json', JSON.stringify(tables, null, 1));
+console.log('\n已保存 wb-pmos-nx/tmp_b_files/nx_hardcode_tables.json');
 
 // [110:137] 变体区与环境因子
 console.log('\n=== [110:137] 变体区分析 ===');
