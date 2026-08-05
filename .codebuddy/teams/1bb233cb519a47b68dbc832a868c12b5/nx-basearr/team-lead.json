@@ -430,5 +430,23 @@
     "content": "验证协议已写好：**/Users/luoyy/work/github/GitHub/rs-reverse_glm/wb-pmos-nx/814_vm_verify_protocol.md**\n\n核心内容（可直接转发给新 agent）：\n\n## 三阶段验证\n1. **阶段 0 环境确认**：输入=cap（113开头，b86[2:]）；8 实时样本含完整 cd/cap/base/keys2 优先用\n2. **阶段 1 结构校验**（硬性）：[0:22] 固定头、[29:68] 固定段、huffman 总 bits、块核心∈6模板(A/B/A2/C/D/E)\n3. **阶段 2 cd 绑定字段**（**核心验证**）：\n   - **env73 [68:73] 必须逐字节 == 样本**（最关键，=f(cd) 确定性）\n   - **pair22 [22:29] 必须逐字节 == 样本**（与 env73 配对）\n   - 8 实时样本 16 字节全命中 = 模拟正确\n4. **阶段 3 允许差异**：块类型/[75:110] 可自由（同 cd 换块 200 已证），[110:137] 应一致，[137:] 硬编码尾\n\n## 判定标准\n- 阶段1+2 全过 → 执行器正确，纯算法达成\n- 阶段2 失败 → env73 生成逻辑有 bug（最可能问题点）\n- 实弹最终确认：执行器 base + 对应 cd 的 keys2/keys17 → buildCookie → API 期望 200（构建流程参照 784_same_len_independent.js）\n\n## 数据就绪\n- /tmp/nx_vm_verify_dataset.json（36 样本）\n- /tmp/nx_io_pairs.json（16）\n- 采集脚本 728_B_capture_all.js 可补样本\n\n我的部分保持就绪，新 agent 需要数据/协议时随时可用。",
     "timestamp": "2026-08-04T02:17:15.813Z",
     "read": true
+  },
+  {
+    "id": "msg-1785863740995-isqbhr",
+    "from": "agentB-formula",
+    "to": "team-lead",
+    "type": "message",
+    "content": "方向 B 阶段性结论已写入 **wb-pmos-nx/nx-sdenv/FINDINGS_BASEARR_B.md**。核心发现（38 样本字节级 diff）：\n\n## basearr 段骨架（对照 xj）\n| 段 | 位置 | 分类 | 结论 |\n|---|---|---|---|\n| 固定头 | [0:22] | 恒定 | 38/38 一致 → 硬编码 |\n| 指纹段 | [29:68] | 环境指纹 | **13 种变体**（含共享子块，对应 xj 硬编码指纹块）→ 可硬编码模板库（任选一个合法变体，A236 同 env 4 种服务器均接受） |\n| 会话段 | [22:29] | f(cd) | 与 env73 配对（802/804）→ 需 VM |\n| env73 | [68:73] | f(cd) | 19 种模式，与 cd/cap 无关系（813 排除）→ 内层 VM |\n| 块区 | [75:110] | 自由 | 同 cd 换块 200 → 任选 6 模板+保持 bits |\n| 变体区 | [110:137] | f(环境/cd) | 同环境固定 |\n| 固定尾 | [137:] | 恒定 | 33B → 硬编码 |\n\n## 纯算法达成度\n- **可硬编码**：[0:22]+[29:68]指纹模板(13选1)+[137:] ≈ 125 字节\n- **可自由**：块区 35 字节（保持 bits）\n- **需 VM**：cd 绑定段 [22:29]+[68:73]+[110:137] ≈ 41 字节\n\n## 关键新发现\n1. **[29:68] 不是完全固定，是 13 种环境指纹变体**（之前以为是固定段）——这是纯算法可以\"模板化\"的部分（xj 的 Go 实现也是硬编码指纹）\n2. A236 同 env 下 [29:68] 有 4 种 → 环境检测含未捕获维度（canvas/webgl）→ 服务器接受任一合法指纹\n3. 公式反推已穷尽：[22:29]+[68:73] 与 cd/cap 无 XOR/哈希/切片/统计关系 → 内层 VM 是唯一路径\n\n## 建议\n1. 纯算法\"指纹模板库\"方向：13 个 [29:68] 模板 + 硬编码头尾 + 自由块区，只差 cd 绑定 41B（VM）\n2. 新 agent 的 VM 模拟可用 FINDINGS_BASEARR_B.md 对照骨架\n3. 数据就绪：36 样本验证集 + 协议文档",
+    "timestamp": "2026-08-04T17:15:40.995Z",
+    "read": true
+  },
+  {
+    "id": "msg-1785863822437-cnwsce",
+    "from": "agentB-formula",
+    "to": "team-lead",
+    "type": "message",
+    "content": "方向 B 收尾完成：\n\n## 1. 硬编码数据表已生成\n**/tmp/nx_hardcode_tables.json**（817_hardcode_tables.js）：\n- `fixedHead` [0:22]：38 样本全一致\n- `fixedTail` [137:]：尾部对齐 33B（38 样本全一致，已验证唯一）\n- `fingerprintTemplates`：[29:68] **13 种模板**（含 count/样本/env73 标注，供 Go 端内嵌任选）\n- `blockTemplates`：6 种块核心 + `blockBits`（各块 huffman bits）\n- `bitsConstraint`：huffman lenMap + 保持约束说明\n\n## 2. [110:137] 变体区新线索\n- **A236 同 env 12 样本：变体区 11/12 完全一致** → 变体区是环境编码\n- `[117]` 批次标记 13/14：与 env73 模式无关（#1/#10 同 env73 但 13/14 不同）→ **时间/会话批次，可随机**\n- 标准#8 异常（采集噪音，排除）\n- 结论：变体区 = 环境编码（VM 产物），与 [68:73] 同源\n\n## 3. 36 样本验证集标注（最终状态）\n- **路径**：/tmp/nx_vm_verify_dataset.json\n- **格式**：{nsd, src, cd, cap, base, keys2, block, pair22[22:29], env68[68:75], env73[68:73]}\n- 8 实时（cd/cap/base/keys2 全，**端到端验证优先用**）+ 8 triple + 12 A236（同环境组）+ 去重\n- **端到端拼装验证**：A 侧破解 41B 后 → fixedHead + 41B + fingerprint(13选1) + 块区 + fixedTail → buildCookie（流程参照 784_same_len_independent.js）→ 对 8 实时样本逐一 API 200 验证\n\nFINDINGS_BASEARR_B.md 已更新（六/七节补充数据表说明与变体区线索）。数据资产全部就绪，等 A 侧 VM 破解后即可端到端验证。",
+    "timestamp": "2026-08-04T17:17:02.437Z",
+    "read": true
   }
 ]
