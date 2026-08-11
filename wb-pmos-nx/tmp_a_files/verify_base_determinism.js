@@ -1,0 +1,53 @@
+// 终极验证：两次 P 解出的 base 是否相同（be[0:16] XOR keys2 → huffman 解码）
+// 但 be[16:] 是 encryptMode1 随机输出，需用 keys17 解密才能得完整 base
+// 关键：keys17 未知，但可以用 be 的结构推断
+const fs = require('fs');
+const path = require('path');
+const ROOT = path.join(__dirname, '..', '..');
+require('module-alias')(path.dirname(require(path.join(ROOT, 'utils/paths.js')).package));
+require(path.join(ROOT, 'src/handler/parser/constData.js')).init();
+const parser = require(path.join(ROOT, 'src/handler/parser/index.js'));
+const NX_BS = 'qrcklmDoExthWJiHAp1sVYKU3RFMQw8IGfPO92bvLNj-7zXBaSnu0TC6gy_4Ze5d{}|~ !#$%()*+,.;=?@[]^';
+const K16 = [215, 90, 92, 114, 190, 161, 210, 59, 55, 192, 204, 2, 209, 95, 17, 173];
+function dB64(s) { const m = {}; for (let i = 0; i < 64; i++) m[NX_BS[i]] = i; const o = []; let q = 0; for (let g = 0; g < Math.floor(s.length / 4); g++) { const c0 = m[s[q]], c1 = m[s[q + 1]], c2 = m[s[q + 2]], c3 = m[s[q + 3]]; q += 4; o.push((c0 << 2) | (c1 >> 4), ((c1 & 15) << 4) | (c2 >> 2), ((c2 & 3) << 6) | c3) } const r = s.length - q; if (r === 2) o.push((m[s[q]] << 2) | (m[s[q + 1]] >> 4)); else if (r === 3) o.push((m[s[q]] << 2) | (m[s[q + 1]] >> 4), ((m[s[q + 1]] & 15) << 4) | (m[s[q + 2]] >> 2)); return o }
+function getTree() { let a = []; for (let i = 1; i < 255; i++) a.push({ total: 1, idx: i }); a.push({ total: 6, idx: 255 }, { total: 45, idx: 0 }); function p(it) { for (let i = 0; i < a.length; i++) if (it.total <= a[i].total) { a.splice(i, 0, it); return } a.push(it) } while (a.length > 1) { const [o1, t2] = a.slice(0, 2); a = a.slice(2); p({ total: o1.total + t2.total, first: o1, second: t2 }) } return a[0] }
+function gEC(t, c = { key: 0, val: 0 }, arr = []) { if (t.idx === undefined) { gEC(t.first, { key: c.key << 1, val: c.val + 1 }, arr); gEC(t.second, { key: (c.key << 1) + 1, val: c.val + 1 }, arr) } else arr[t.idx] = c; return arr }
+const cfg = gEC(getTree()); const byLen = {}; let maxL = 0; for (let b = 0; b < 256; b++) { const c = cfg[b]; if (!c) continue; if (!byLen[c.val]) byLen[c.val] = {}; byLen[c.val][c.key] = b; if (c.val > maxL) maxL = c.val }
+function hdecRaw(enc) { const ans = []; let key = 0, val = 0; for (const byte of enc) { for (let b = 7; b >= 0; b--) { key = (key << 1) | ((byte >> b) & 1); val++; const mm = byLen[val]; if (mm && mm[key] !== undefined) { ans.push(mm[key]); key = 0; val = 0 } if (val > maxL) { key = 0; val = 0 } } } return ans }
+function henc(num) { const ans = []; let one = 0, two = 0; for (const b of num) { const c = cfg[b]; if (!c) continue; one = one << c.val | c.key; two += c.val; while (two >= 8) { ans.push(one >> two - 8); one &= ~(255 << two - 8); two -= 8 } } if (two > 0) ans.push(one << 8 - two | 0x68 >> two); return ans }
+function extractFromP(Pval) {
+  const pB = dB64(Pval.slice(1));
+  const k16a = parser.numarrAddTime([...K16], 0, 1 / 256)[0];
+  const dec = parser.encryptMode2([...pB], k16a, 1);
+  const na = dec.slice(4);
+  const cookieK2 = na.slice(11, 59);
+  const beLen = (na[59] & 0x7f) << 8 | na[60];
+  const be = na.slice(61, 61 + beLen);
+  return { na, cookieK2, beLen, be };
+}
+const a = require('./nx_p1.json');
+const b = require('./nx_p2.json');
+const ra = extractFromP(a.P);
+const rb = extractFromP(b.P);
+// be[0:16] XOR cookieK2[0:16] = numarrEncrypt(base)[0:16]
+// 但 numarrEncrypt 是 huffman 编码，base[0:16] 需解码
+// 关键：如果 base 确定，numarrEncrypt(base)[0:16] 应相同
+// 但 be[0:16] 相同且 cookieK2 相同 → numarrEncrypt(base)[0:16] 相同 → base[0:16] 相同（如果 huffman 前缀确定）
+// 直接验证：huffman 解码 be[0:16] XOR cookieK2
+const xa = ra.be.slice(0, 16).map((v, i) => v ^ ra.cookieK2[i]);
+const xb = rb.be.slice(0, 16).map((v, i) => v ^ rb.cookieK2[i]);
+console.log('XOR(base[0:16]) P1:', xa.join(','));
+console.log('XOR(base[0:16]) P2:', xb.join(','));
+console.log('相同?', JSON.stringify(xa) === JSON.stringify(xb));
+
+// numarrEncrypt(base) 的前缀解码 → base 前几字节
+// huffman 解码 xa（numarrEncrypt 是 huffman 编码）
+const decBase = hdecRaw(xa);
+console.log('\nbase 前字节（huffman解码 xa）:', decBase.slice(0, 10).join(','));
+
+// 关键结论：即使 be[16:] 因随机不同，be[0:16] = numarrEncrypt(base)[0:16] 确定
+// → base[0:16] 的 huffman 编码确定 → base 前 16 字节对应确定
+// 但 base[0:16] 解码需要知道 huffman 边界（长度）
+console.log('\n★★★ 结论：be[0:16] 确定（两次相同）→ numarrEncrypt(base) 前 16 字节确定');
+console.log('base 是否完全确定，需解密 be[16:]（encryptMode1 随机部分）→ 需要 keys17');
+console.log('但 be[0:16] + cookieK2 相同 + beLen 相同 → 强烈暗示 base 确定');

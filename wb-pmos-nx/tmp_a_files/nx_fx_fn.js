@@ -1,0 +1,1 @@
+function _$fx(_$aq){var _$_T,_$hr,_$kx;_$_T=_$aq.split('');for(_$kx=_$aq.length-4;_$kx>=0;_$kx-=4)_$hr=_$_T[_$kx],_$_T[_$kx]=_$_T[_$kx+1],_$_T[_$kx+1]=_$_T[_$kx+3],_$_T[_$kx+3]=_$_T[_$kx+2],_$_T[_$kx+2]=_$hr;return _$_T.join('');}

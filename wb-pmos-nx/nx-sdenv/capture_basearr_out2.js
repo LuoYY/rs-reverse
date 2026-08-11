@@ -35,7 +35,7 @@ const LOCAL_PROXY = 'http://127.0.0.1:8080';
             console.log('[O2] ✗ ' + fn + ' 未找到');
           }
         }
-        fs.writeFileSync('/tmp/nx_dynCode_o2_patched.js', c);
+        fs.writeFileSync('/Users/luoyy/work/github/GitHub/rs-reverse_glm/wb-pmos-nx/tmp_a_files/nx_dynCode_o2_patched.js', c);
         code = c;
       }
     } catch (e) { console.log('[O2] hook err:', e.message); }

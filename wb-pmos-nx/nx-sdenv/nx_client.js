@@ -1,13 +1,13 @@
 /**
  * nx_client.js — nx 站点纯算法客户端（无浏览器）
  *
- * ★★★★★ 完整链路：sdenv 生成 cookie（纯 Node）+ 纯算法 query ★★★★★
+ * ★★★★★ 完整链路：sdenv 生成 cookie（纯 Node）+ deriveKeys 纯计算 + 纯算法 query ★★★★★
  *
  * 核心思路：
- * 1. sdenv（JSVMP 补环境框架：sdenv-jsdom + browser(chrome) 补丁 + 固定随机数）
- *    在纯 Node 中执行瑞数外层 JS，生成与浏览器等价的合法 O+P cookie（已证 200）
- * 2. jsdom_keys_child 提取 keys（f(nsd,cd) 纯计算）
- * 3. 纯算法生成 MurR7rxG query（100% 已攻克）
+ * 1. sdenv（JSVMP 补环境框架：sdenv-jsdom + browser(chrome) 补丁）在纯 Node 中
+ *    执行瑞数外层 JS，生成与浏览器等价的合法 O+P cookie（已证 200）
+ * 2. cd 纯计算派生 keys（deriveKeys：K16 锚扫描 offset → XOR → genKeysSim）——不依赖浏览器
+ * 3. 纯算法生成 query（100% 已攻克）
  *
  * 用法：
  *   const nx = require('./nx_client');
@@ -20,7 +20,6 @@
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 process.env.OPENSSL_LEGACY_RENEGOTIATION = '1';
 const path = require('path');
-const { fork } = require('child_process');
 const { jsdomFromUrl } = require('sdenv');
 const { httpGet, httpPost } = require('./proxy_http');
 
@@ -35,7 +34,7 @@ const ROOT = path.join(__dirname, '..', '..');
 // 站点外层 JS（挑战 js，含 VM 逻辑）
 const OUTER_JS = process.env.NX_OUTER_JS || path.join(ROOT, 'example/pmos.nx.sgcc.com.cn/c9qYRt1w5yKr/83bw0aTvAW7K.2437991.js');
 // sdenv 加载页面时的代理（https-proxy-agent 支持 user:pass@host 格式）
-const SDENV_PROXY = process.env.NX_SDENV_PROXY || 'http://ericshi:583315@120.220.64.185:2018';
+const SDENV_PROXY = process.env.NX_SDENV_PROXY || 'http://ericshi:583315@120.221.249.98:2018';
 
 let _gv = null;
 function initModules() {
@@ -48,25 +47,71 @@ function initModules() {
 
 function crc32b(buf) { let c = 0xffffffff; for (const b of buf) { c ^= b; for (let i = 0; i < 8; i++) c = (c >>> 1) ^ (0xedb88320 & -(c & 1)); } return (c ^ 0xffffffff) >>> 0; }
 
-function forkKeys(nsd, cd) {
-  return new Promise((resolve) => {
-    const child = fork(path.join(__dirname, 'jsdom_keys_child.js'), [], {
-      stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
-    });
-    const timer = setTimeout(() => { child.kill(); resolve(null); }, 20000);
-    child.on('message', (msg) => { clearTimeout(timer); resolve(msg); });
-    child.on('error', () => { clearTimeout(timer); resolve(null); });
-    child.send({ nsd, cd, outerJsPath: OUTER_JS });
-  });
+// ---- deriveKeys 纯计算（cd → keys，K16 锚扫描，移植自 collect_final_working）----
+const NX_BS = 'qrcklmDoExthWJiHAp1sVYKU3RFMQw8IGfPO92bvLNj-7zXBaSnu0TC6gy_4Ze5d{}|~ !#$%()*+,.;=?@[]^';
+const K16 = [215, 90, 92, 114, 190, 161, 210, 59, 55, 192, 204, 2, 209, 95, 17, 173];
+function decryptCd(str) {
+  const idxmap = {};
+  NX_BS.split('').forEach((k, i) => { idxmap[k] = i; });
+  const ans = [];
+  for (let i = 0; i < str.length; i += 4) {
+    const one = str[i], two = str[i + 1], three = str[i + 2], four = str[i + 3];
+    if (two) ans.push((idxmap[one] << 2) | (idxmap[two] >> 4));
+    if (three) ans.push(((idxmap[two] & 15) << 4) | (idxmap[three] >> 2));
+    if (four) ans.push(((idxmap[three] & 3) << 6) | idxmap[four]);
+  }
+  return ans;
 }
-
-/** keys 提取（20s 超时 + 最多 3 次重试） */
-async function forkKeysWithRetry(nsd, cd) {
-  for (let i = 0; i < 3; i++) {
-    const m = await forkKeys(nsd, cd);
-    if (m && m.keys17 && m.keys2) return m;
+function getLensGo(numarr, idx) {
+  const item = numarr[idx]; idx++;
+  let lens;
+  if ((item & 128) === 0) lens = item;
+  else if ((item & 192) === 128) { lens = ((item & 63) << 8) | numarr[idx]; idx++; }
+  else if ((item & 224) === 192) { lens = ((item & 31) << 16) | (numarr[idx] << 8) | numarr[idx + 1]; idx += 2; }
+  else if ((item & 240) === 224) { lens = ((item & 15) << 24) | (numarr[idx] << 16) | (numarr[idx + 1] << 8) | numarr[idx + 2]; idx += 3; }
+  else if ((item & 248) === 240) { lens = (numarr[idx] << 24) | (numarr[idx + 1] << 16) | (numarr[idx + 2] << 8) | numarr[idx + 3]; idx += 4; }
+  else lens = item;
+  return [lens, idx];
+}
+function genKeysSim(ans) {
+  const keys = [];
+  let op = 1, gap;
+  try {
+    for (let i = 0; i < ans[0]; i++) {
+      [gap, op] = getLensGo(ans, op);
+      if (gap < 0 || op + gap > ans.length) return null;
+      keys.push(ans.slice(op, op + gap));
+      op += gap;
+    }
+  } catch (e) { return null; }
+  return keys;
+}
+function deriveOffsetNx(tail) {
+  if (tail.length < 40) return null;
+  const off0 = tail[0] ^ 51, off1 = tail[1] ^ 2, off4 = tail[4] ^ 2, off7 = tail[7] ^ 48;
+  for (let k0 = 0; k0 <= 127; k0++) {
+    const off2 = tail[2] ^ k0, off5 = tail[5] ^ k0;
+    for (let k1 = 0; k1 <= 127; k1++) {
+      const off3 = tail[3] ^ k1, off6 = tail[6] ^ k1;
+      const offset = [off0, off1, off2, off3, off4, off5, off6, off7];
+      const ans = tail.map((b, i) => b ^ offset[i % 8]);
+      if (ans[0] !== 51 || ans[1] !== 2 || ans[4] !== 2 || ans[7] !== 48) continue;
+      const keys = genKeysSim(ans);
+      if (keys && keys[2] && keys[2].length === 48 && keys.length > 32 &&
+        keys[29] && keys[29].length === 4 && keys[30] && keys[30].length === 4 &&
+        keys[31] && keys[31].length === 4 && keys[32] && keys[32].length === 4) return offset;
+    }
   }
   return null;
+}
+function deriveKeys(cd) {
+  const cdArr = decryptCd(cd);
+  const end = (cdArr[0] << 8 | cdArr[1]) + 2;
+  const tail = cdArr.slice(end);
+  const offset = deriveOffsetNx(tail);
+  if (!offset) return null;
+  const ans = tail.map((b, i) => b ^ offset[i % 8]);
+  return genKeysSim(ans);
 }
 
 function genQuery(urlPath, k2, k17) {
@@ -93,8 +138,8 @@ function genQuery(urlPath, k2, k17) {
 }
 
 /**
- * 一次性初始化：sdenv 生成 O+P cookie + 提取 keys
- * @returns {Promise<{cookie: string, cookieO: string, cookieP: string, keys2: number[], keys17: number[], nsd: number}>}
+ * 一次性初始化：sdenv 生成 O+P cookie + cd 纯计算派生 keys
+ * @returns {Promise<{cookie: string, cookieO: string, cookieP: string, keys2: number[], keys17: number[], nsd: number, cd: string}>}
  */
 async function init(opts = {}) {
   initModules();
@@ -107,32 +152,52 @@ async function init(opts = {}) {
     consoleConfig: { error: new Function() },
   });
   const { window, cookieJar } = dom;
-  if (window.$_ts) {
-    nsd = window.$_ts.nsd;
-    cd = typeof window.$_ts.cd === 'string' ? window.$_ts.cd : String(window.$_ts.cd || '');
-  } else {
-    throw new Error('$_ts 不可用（sdenv 未正确加载挑战页）');
+  // 轮询捕获 $_ts（cookie 生成完成后可能被清空）
+  let capTs = null;
+  const t0 = Date.now();
+  while (Date.now() - t0 < 15000) {
+    try {
+      if (!capTs && window.$_ts && window.$_ts.cd) {
+        capTs = { nsd: window.$_ts.nsd, cd: typeof window.$_ts.cd === 'string' ? window.$_ts.cd : String(window.$_ts.cd || '') };
+      }
+      const c = cookieJar.getCookieStringSync(TARGET);
+      const pLen = (c.match(/P=[^;]*/) || [''])[0].length;
+      if (capTs && pLen > 300) break;
+    } catch (e) {}
+    await new Promise(r => setTimeout(r, 300));
   }
+  if (!capTs) throw new Error('$_ts 不可用（sdenv 未正确加载挑战页）');
+  nsd = capTs.nsd; cd = capTs.cd;
   log(`[nx.init] nsd=${nsd} cd_len=${cd.length}`);
-  const cookies = await new Promise((resolve) => {
-    const timer = setTimeout(() => { resolve(cookieJar.getCookieStringSync(TARGET)); }, timeoutMs);
-    window.addEventListener('sdenv:exit', () => { clearTimeout(timer); resolve(cookieJar.getCookieStringSync(TARGET)); });
-  });
+  const cookies = cookieJar.getCookieStringSync(TARGET);
   const parts = cookies.split(';').map(s => s.trim());
   const oC = parts.find(p => /O=/.test(p));
   const pC = parts.find(p => /P=/.test(p));
   if (!oC || !pC) throw new Error('无 O/P cookie: ' + cookies.substring(0, 100));
-  const m = await forkKeysWithRetry(nsd, cd);
-  if (!m || !m.keys17 || !m.keys2) throw new Error('keys 提取失败');
+  const keys = deriveKeys(cd);
+  if (!keys || !keys[17] || !keys[2]) throw new Error('deriveKeys 失败');
   return {
     cookie: oC + '; ' + pC,
     cookieO: oC, cookieP: pC,
-    keys2: m.keys2, keys17: m.keys17, nsd,
+    keys2: keys[2], keys17: keys[17], nsd, cd,
+  };
+}
+
+// 完整业务 headers（nx 前端实际发送，缺一不可）
+function bizHeaders() {
+  return {
+    'Accept': 'application/json, text/plain, */*',
+    'ClientTag': 'OUTNET_BROWSE',
+    'CurrentRoute': '/outNet',
+    'Origin': 'https://pmos.nx.sgcc.com.cn:10443',
+    'Referer': 'https://pmos.nx.sgcc.com.cn:10443/',
+    'X-Ticket': 'undefined',
+    'X-Token': 'null',
   };
 }
 
 /**
- * GET 请求（复用 init 的 cookie，生成新 query）
+ * GET 请求（复用 init 的 cookie，生成双 query：URL query + MurR7rxG header）
  * @param {string} urlPath 如 /px-gateway/GatewayConfig/getGatewayConfig
  * @param {object} ctx init() 返回的上下文
  * @param {object} opts { retries=3, timeout=20000, log, headers }
@@ -144,11 +209,13 @@ async function get(urlPath, ctx, opts = {}) {
   const log = opts.log || (() => {});
   let last;
   for (let i = 0; i <= retries; i++) {
-    const q = genQuery(urlPath, ctx.keys2, ctx.keys17);
-    const r = await httpGet(TARGET + urlPath.replace(/^\//, ''), {
+    const urlQ = genQuery(urlPath, ctx.keys2, ctx.keys17);
+    const hdrQ = genQuery(urlPath, ctx.keys2, ctx.keys17);
+    const full = TARGET + urlPath.replace(/^\//, '') + '?' + urlQ;
+    const r = await httpGet(full, {
       userAgent: UA,
       timeout,
-      headers: { Cookie: ctx.cookie, Accept: '*/*', [QUERY_PARAM]: q, ...opts.headers },
+      headers: { Cookie: ctx.cookie, [QUERY_PARAM]: hdrQ, ...bizHeaders(), ...opts.headers },
     });
     if (r.status === 200 || (r.status !== 412 && r.status !== 'ERR')) return r;
     last = r;
@@ -158,13 +225,7 @@ async function get(urlPath, ctx, opts = {}) {
 }
 
 /**
- * POST 请求（复用 init 的 cookie，生成新 query）
- *
- * ⚠️ 已知限制（重要）：POST 成功率约 10%（200 偶发），
- * 这是 WAF 对 POST 的 TLS 指纹检测（GET 校验宽松、POST 校验严格），
- * 与 query 生成无关（已排除 plain24 结构/前缀/counter 因素）。
- * 建议：业务写操作优先走 GET 或降低 POST 频次；后续可尝试 TLS 指纹优化。
- *
+ * POST 请求（复用 init 的 cookie，生成双 query）
  * @param {string} urlPath 如 /px-gateway/GatewayConfig/getGatewayConfig
  * @param {string|object} body 请求体（对象自动 JSON 化）
  * @param {object} ctx init() 返回的上下文
@@ -178,11 +239,13 @@ async function post(urlPath, body, ctx, opts = {}) {
   const payload = typeof body === 'string' ? body : JSON.stringify(body);
   let last;
   for (let i = 0; i <= retries; i++) {
-    const q = genQuery(urlPath, ctx.keys2, ctx.keys17);
-    const r = await httpPost(TARGET + urlPath.replace(/^\//, ''), payload, {
+    const urlQ = genQuery(urlPath, ctx.keys2, ctx.keys17);
+    const hdrQ = genQuery(urlPath, ctx.keys2, ctx.keys17);
+    const full = TARGET + urlPath.replace(/^\//, '') + '?' + urlQ;
+    const r = await httpPost(full, payload, {
       userAgent: UA,
       timeout,
-      headers: { Cookie: ctx.cookie, Accept: '*/*', [QUERY_PARAM]: q, ...opts.headers },
+      headers: { Cookie: ctx.cookie, 'Content-Type': 'application/json;charset=UTF-8', [QUERY_PARAM]: hdrQ, ...bizHeaders(), ...opts.headers },
     });
     if (r.status === 200 || (r.status !== 412 && r.status !== 'ERR')) return r;
     last = r;
@@ -191,4 +254,4 @@ async function post(urlPath, body, ctx, opts = {}) {
   return last;
 }
 
-module.exports = { init, get, post, genQuery, UA, TARGET, QUERY_PARAM };
+module.exports = { init, get, post, genQuery, deriveKeys, UA, TARGET, QUERY_PARAM, BASESTR_QUERY, NX_BS, K16 };

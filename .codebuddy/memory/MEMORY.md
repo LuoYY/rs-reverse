@@ -36,6 +36,21 @@ rs-reverse（瑞数 VMP 逆向工具）的 fork 工作区，目标适配 pmos.xj
 - cookie 名 aoU85Lxl9xxN + O/P（lastWord='P'），flag=1801
 - query 参数名 r20SZOQm = keys[7].split(';')[1]（会话相关）
 
+## nx 交付状态（2026-08-06 定稿）
+- **目标环境完全无 JS 运行能力**（用户确认）→ 交付 = 本地生成服务 + 目标环境 HTTP 重放
+- **服务**：`wb-pmos-nx/nx-sdenv/nx_gen_server.js`（Node 22 + sdenv，端口 9178）
+  - `GET /gen?url=...` → { url, cookie, query, queryHeader, headers }
+  - `GET /gen?url=...&fresh=1` → **POST 专用**（强制新会话）
+  - 后台每 60s 自动刷新会话（无限续期）
+- **关键事实**：
+  - sdenv init ~940ms（5/5 成功）
+  - **P cookie 一次性（POST）**：同会话第 1 次 POST 100%，第 2 次起 ~12%（服务端消费）
+  - **GET 可复用会话**：同 cookie 多次 GET 稳定 200
+  - cookie 时效 90s/120s；keys2/keys17 每会话变化 → query 必须同会话 keys
+  - **POST 根因修正**：旧"POST 绑定 TLS 指纹"错误——实际是 P cookie 一次性
+- **验证**：GET 5/5、POST fresh 5/5、跨 140s 自动刷新稳定
+- 文档：`wb-pmos-nx/nx-sdenv/README_GEN_SERVER.md`
+
 ## Query 参数逆向（2026-07-31 完全破解）
 - **query 结构**：119 字符 = '0' + numarr2string(88 bytes, basestr)
 - **88 字节** = [CRC32(4B 大端)] [1] [0] [48] [session_data 48B] [32] [request_data 32B]

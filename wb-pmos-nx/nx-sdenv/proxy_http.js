@@ -11,7 +11,7 @@
 const http = require('http');
 const https = require('https');
 
-const PROXY_HOST = process.env.NX_PROXY_HOST || '120.220.64.185';
+const PROXY_HOST = process.env.NX_PROXY_HOST || '120.221.249.98';
 const PROXY_PORT = parseInt(process.env.NX_PROXY_PORT || '2018', 10);
 const PROXY_AUTH = 'Basic ' + Buffer.from(
   (process.env.NX_PROXY_USER || 'ericshi') + ':' + (process.env.NX_PROXY_PASS || '583315')

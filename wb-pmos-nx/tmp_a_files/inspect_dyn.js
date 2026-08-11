@@ -1,0 +1,12 @@
+const fs = require('fs');
+const code = fs.readFileSync('/Users/luoyy/work/github/GitHub/rs-reverse_glm/wb-pmos-nx/anchor_analysis_files/nx_dynCode_captured_2.js', 'utf8');
+const fns = code.match(/function (_\$[a-zA-Z0-9]+)\(/g) || [];
+console.log('函数定义前30:', fns.slice(0, 30).join(' '));
+const m = code.match(/.{30}while\(1\)\{[^\n]{0,100}/);
+console.log('主循环:', m ? m[0] : 'none');
+const m2 = code.match(/if\(([_\$a-zA-Z0-9]+)===13\)\{([^}]{0,80})/);
+console.log('===13:', m2 ? m2[0] : 'none');
+console.log('_$pW 出现:', (code.match(/_\$pW/g) || []).length);
+console.log('_$c4 出现:', (code.match(/_\$c4/g) || []).length);
+const m4 = code.match(/.{20}if\(([_\$a-zA-Z0-9]+)===12\)\{[^}]{0,40}/);
+console.log('===12 ctx:', m4 ? m4[0] : 'none');
